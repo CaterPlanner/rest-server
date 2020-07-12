@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: admin
+    password: aass6759
+    url: jdbc:mysql://caterplanner.cdkfvcl3aw1z.us-east-2.rds.amazonaws.com/CaterPlanner
+  jpa:
+    hibernate:
+      ddl-auto: update
+
