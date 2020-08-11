@@ -1,37 +1,68 @@
 package com.downfall.caterplanner.application.security;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
+
+import com.auth0.jwt.algorithms.Algorithm;
+import com.downfall.caterplanner.application.security.filter.JwtAuthenticationFilter;
+import com.downfall.caterplanner.application.security.jwt.JwtFactory;
+import com.downfall.caterplanner.application.security.jwt.JwtVerifier;
+import com.downfall.caterplanner.application.security.provider.JwtAuthenticationProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
-import javax.annotation.PostConstruct;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @PostConstruct
-    private void firebaseInit() throws IOException {
-        Resource resource = new ClassPathResource("/firebase/caterplanner-firebase-adminsdk-r0nw3-c46f897adb.json");
-        FileInputStream serviceAccount =
-                new FileInputStream(resource.getFile());
+    @Autowired
+    JwtAuthenticationProvider jwtAuthenticationProvider;
 
-        FirebaseOptions options = new FirebaseOptions.Builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                .setDatabaseUrl("https://caterplanner.firebaseio.com")
-                .build();
+    private final Algorithm algorithm = Algorithm.HMAC256("12345678901234567890123456789012");
 
-        FirebaseApp.initializeApp(options);
+    @Bean
+    public JwtFactory jwtFactory(){
+        return new JwtFactory(algorithm);
+    }
+
+    @Bean
+    public JwtVerifier jwtVerifier(){
+        return new JwtVerifier(algorithm);
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth
+                .authenticationProvider(jwtAuthenticationProvider);
+    }
+
+    protected JwtAuthenticationFilter jwtAuthenticationFilter() throws Exception{
+
+        OrRequestMatcher notAllowMatcher = new OrRequestMatcher(
+                Arrays.asList("/auth/social/**", "/auth/refreshToken").stream().map(p -> new AntPathRequestMatcher(p)).collect(Collectors.toList()));
+
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(new RequestMatcher() {
+            @Override
+            public boolean matches(HttpServletRequest request) {
+                return !notAllowMatcher.matches(request);
+            }
+        });
+
+        filter.setAuthenticationManager(super.authenticationManagerBean());
+        return filter;
     }
 
     @Override
@@ -41,6 +72,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .csrf().disable()
                 .headers().frameOptions().disable()
                 .and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
     }
 }
