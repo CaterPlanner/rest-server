@@ -35,7 +35,7 @@ public class AuthService {
                     User.builder()
                             .email(email)
                             .name(name)
-                            .pictureUrl(pictureUrl)
+                            .profileUrl(pictureUrl)
                             .fcmToken(fcmToken)
                             .build()
             );

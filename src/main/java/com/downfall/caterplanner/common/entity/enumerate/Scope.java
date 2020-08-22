@@ -1,5 +1,8 @@
 package com.downfall.caterplanner.common.entity.enumerate;
 
+import lombok.Getter;
+
+@Getter
 public enum  Scope {
 
     PUBLIC(0),
@@ -10,10 +13,6 @@ public enum  Scope {
 
     Scope(int value){
         this.value = value;
-    }
-
-    public int getValue() {
-        return value;
     }
 
     public static Scope findScope(int value){

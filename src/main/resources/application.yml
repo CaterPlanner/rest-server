@@ -8,6 +8,18 @@ spring:
     hibernate:
       ddl-auto: update
 
+cloud:
+  aws:
+      credentials:
+        accessKey: AKIAJGHYRH3VM3Q47OBA
+        secretKey: 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
+      s3:
+        bucket: caterplanner
+      region:
+        static: ap-northeast-2
+      stack:
+        auth: false
+
 server:
   port: 5252
 
