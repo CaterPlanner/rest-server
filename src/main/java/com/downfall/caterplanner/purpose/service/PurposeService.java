@@ -1,5 +1,6 @@
 package com.downfall.caterplanner.purpose.service;
 
+import com.downfall.caterplanner.application.aws.S3Util;
 import com.downfall.caterplanner.application.exception.HttpRequestException;
 import com.downfall.caterplanner.common.entity.*;
 import com.downfall.caterplanner.common.entity.enumerate.Scope;
@@ -18,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,15 +38,24 @@ public class PurposeService {
     @Autowired
     private StoryRepository storyRepository;
 
+    @Autowired
+    private S3Util s3Util;
+
+
+
+    private String getPhotoUrl(Long id, MultipartFile photo) throws IOException {
+        String newFileName = "purpose/purposePhoto-"+id;
+        return s3Util.upload(newFileName, photo);
+    }
+
     @Transactional
-    public ResponsePurpose create(Long authorId, PurposeResource resource){
+    public ResponsePurpose create(Long authorId, PurposeResource resource) throws IOException {
         User author = userRepository.findById(authorId).orElseThrow(() -> new HttpRequestException("존재하지 않는 유저입니다.", HttpStatus.BAD_REQUEST));
 
         Purpose purpose = purposeRepository.save(
                 Purpose.builder()
                     .name(resource.getName())
                     .description(resource.getDescription())
-                    .photoUrl(resource.getPhoto())
                     .startDate(resource.getStartDate())
                     .endDate(resource.getEndDate())
                     .disclosureScope(Scope.findScope(resource.getDisclosureScope()))
@@ -52,12 +64,16 @@ public class PurposeService {
                     .build()
         );
 
+        String photoUrl = getPhotoUrl(purpose.getId(), resource.getPhoto());
+
+        purpose.setPhotoUrl(photoUrl);
+
         List<Goal> goalList = putDetailPlans(resource, purpose);
 
-        return ResponsePurpose.defaultBuilder(purpose)
-                    .detailPlans(goalList.stream()
-                            .map(g -> getGoalBuild(g)).collect(Collectors.toList()))
-                    .build();
+        return ResponsePurpose.builder()
+                        .id(purpose.getId())
+                        .photoUrl(purpose.getPhotoUrl())
+                        .build();
     }
 
     public ResponsePurpose read(Long userId, Long purposeId){
@@ -110,7 +126,7 @@ public class PurposeService {
     }
 
     @Transactional
-    public ResponsePurpose modifyAll(Long id, PurposeResource resource) {
+    public ResponsePurpose modifyAll(Long id, PurposeResource resource) throws IOException {
         Purpose purpose = changePurpose(id, resource);
 
         List<Goal> goalList = putDetailPlans(resource, purpose);
@@ -118,21 +134,23 @@ public class PurposeService {
         Purpose updatedPurpose = purposeRepository.save(purpose);
 
         //변경된 정보만 리턴
-        return ResponsePurpose.defaultBuilder(purpose)
-                .detailPlans(updatedPurpose.getDetailPlans().stream()
-                        .map(g -> getGoalBuild(g)).collect(Collectors.toList()))
+        return ResponsePurpose.builder()
+                .id(purpose.getId())
+                .photoUrl(purpose.getPhotoUrl())
                 .build();
-
     }
 
     @Transactional
-    public ResponsePurpose modify(Long id, PurposeResource resource) {
+    public ResponsePurpose modify(Long id, PurposeResource resource) throws IOException {
         Purpose purpose = changePurpose(id, resource);
 
         Purpose updatedPurpose =  purposeRepository.save(purpose);
 
         //변경된 정보만 리턴
-        return ResponsePurpose.defaultBuilder(purpose).build();
+        return ResponsePurpose.builder()
+                .id(purpose.getId())
+                .photoUrl(purpose.getPhotoUrl())
+                .build();
     }
 
     @Transactional
@@ -167,11 +185,11 @@ public class PurposeService {
     }
 
 
-    private Purpose changePurpose(Long id, PurposeResource resource) {
+    private Purpose changePurpose(Long id, PurposeResource resource) throws IOException {
         Purpose purpose = purposeRepository.findById(id).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
 
         purpose.setName(resource.getName())
-               .setPhotoUrl(resource.getPhoto())
+               .setPhotoUrl(getPhotoUrl(purpose.getId(), resource.getPhoto()))
                .setStartDate(resource.getStartDate())
                .setEndDate(resource.getEndDate())
                .setDisclosureScope(Scope.findScope(resource.getDisclosureScope()))

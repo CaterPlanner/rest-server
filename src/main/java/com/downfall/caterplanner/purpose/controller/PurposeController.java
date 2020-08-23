@@ -15,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -33,11 +34,19 @@ public class PurposeController {
 
     @PostMapping
     public ResponseHeader<?> create(@AuthenticationPrincipal JwtPayload payload, @Valid  @RequestBody PurposeResource resource){
-        return ResponseHeader.<ResponsePurpose>builder()
-                    .data(purposeService.create(payload.getId(), resource))
-                    .status(HttpStatus.CREATED)
-                    .message("목적 생성 완료")
-                    .build();
+        try {
+            return ResponseHeader.<ResponsePurpose>builder()
+                        .data(purposeService.create(payload.getId(), resource))
+                        .status(HttpStatus.CREATED)
+                        .message("목적 생성 완료")
+                        .build();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseHeader.builder()
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .message("파일 스토로지 오류")
+                        .build();
+        }
     }
 
     @GetMapping("{id}")
@@ -51,20 +60,36 @@ public class PurposeController {
 
     @PatchMapping("{id}")
     public ResponseHeader<?> modify(@PathVariable("id") Long id, @Valid @RequestBody PurposeResource resource){
-        return ResponseHeader.builder()
-                .data(purposeService.modify(id, resource))
-                .status(HttpStatus.OK)
-                .message("목적 수정 완료")
-                .build();
+        try {
+            return ResponseHeader.builder()
+                    .data(purposeService.modify(id, resource))
+                    .status(HttpStatus.OK)
+                    .message("목적 수정 완료")
+                    .build();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseHeader.builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .message("파일 스토로지 오류")
+                    .build();
+        }
     }
 
     @PutMapping("{id}")
     public ResponseHeader<?> modifyAll(@PathVariable("id") Long id, @Valid @RequestBody PurposeResource resource){
-        return ResponseHeader.builder()
-                    .data(purposeService.modifyAll(id, resource))
-                    .status(HttpStatus.OK)
-                    .message("목적 수정 완료")
+        try {
+            return ResponseHeader.builder()
+                        .data(purposeService.modifyAll(id, resource))
+                        .status(HttpStatus.OK)
+                        .message("목적 수정 완료")
+                        .build();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseHeader.builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .message("파일 스토로지 오류")
                     .build();
+        }
     }
 
     @PatchMapping("{id}/update")

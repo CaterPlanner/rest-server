@@ -25,13 +25,13 @@ public class ResponsePurpose {
 
     private String description;
 
-    private String imageUrl;
+    private String photoUrl;
 
     private int disclosureScope;
 
     private LocalDate startDate;
 
-    private LocalDate decimalDate;
+    private LocalDate endDate;
 
     private int stat;
 
@@ -52,10 +52,10 @@ public class ResponsePurpose {
                 .id(purpose.getId())
                 .name(purpose.getName())
                 .description(purpose.getDescription())
-                .imageUrl(purpose.getPhotoUrl())
+                .photoUrl(purpose.getPhotoUrl())
                 .disclosureScope(purpose.getDisclosureScope().getValue())
                 .startDate(purpose.getStartDate())
-                .decimalDate(purpose.getEndDate())
+                .endDate(purpose.getEndDate())
                 .stat(purpose.getStat().getValue());
     }
 

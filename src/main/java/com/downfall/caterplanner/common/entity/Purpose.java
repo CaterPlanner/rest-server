@@ -52,7 +52,6 @@ public class Purpose extends BaseModel{
     @Column(columnDefinition = "integer default 0")
     private int achieve;
 
-
     @ToString.Exclude
     @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
