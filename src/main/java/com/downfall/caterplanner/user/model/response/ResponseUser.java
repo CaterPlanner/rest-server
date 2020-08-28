@@ -1,7 +1,9 @@
 package com.downfall.caterplanner.user.model.response;
 
 import com.downfall.caterplanner.common.entity.Purpose;
+import com.downfall.caterplanner.purpose.model.response.ResponsePurpose;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,6 +27,8 @@ public class ResponseUser {
 
     private LocalDateTime joinDate;
 
-    private List<Purpose> purposeList;
+    private List<ResponsePurpose> purposeList;
+
+    private Boolean isOwner;
 
 }

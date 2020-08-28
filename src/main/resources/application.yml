@@ -18,7 +18,7 @@ cloud:
       region:
         static: ap-northeast-2
       stack:
-        auth: false
+        auto: false
 
 server:
   port: 5252

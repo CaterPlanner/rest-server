@@ -22,17 +22,19 @@ public class ResponseStory {
 
     private String content;
 
-    private int type;
+    private Integer type;
 
     private ResponsePurpose purpose;
 
-    private ResponseUser profile;
+    private ResponseUser author;
 
-    private int likesCount;
+    private Integer likesCount;
 
-    private int commentCount;
+    private Integer commentCount;
 
-    private boolean canLikes;
+    private Boolean canLikes;
+
+    private Boolean isOwner;
 
     private LocalDateTime createDate;
 

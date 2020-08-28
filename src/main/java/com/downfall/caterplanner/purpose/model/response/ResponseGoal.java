@@ -16,7 +16,7 @@ public class ResponseGoal {
 
     private Long purposeId;
 
-    private int id;
+    private Integer id;
 
     private String name;
 
@@ -30,8 +30,10 @@ public class ResponseGoal {
 
     private String cycle;
 
-    private int achieve;
+    private Integer briefingCount;
 
-    private int stat;
+    private LocalDate lastBriefingDate;
+
+    private Integer stat;
 
 }

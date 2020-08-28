@@ -3,16 +3,24 @@ package com.downfall.caterplanner.purpose.service;
 import com.downfall.caterplanner.application.exception.HttpRequestException;
 import com.downfall.caterplanner.common.entity.Purpose;
 import com.downfall.caterplanner.common.entity.PurposeComment;
+import com.downfall.caterplanner.common.entity.StoryComment;
 import com.downfall.caterplanner.common.entity.User;
+import com.downfall.caterplanner.common.model.network.PageResult;
 import com.downfall.caterplanner.common.repository.PurposeCommentRepository;
 import com.downfall.caterplanner.common.repository.PurposeRepository;
 import com.downfall.caterplanner.common.repository.UserRepository;
 import com.downfall.caterplanner.purpose.model.request.PurposeCommentResource;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurposeComment;
+import com.downfall.caterplanner.story.model.response.ResponseStoryComment;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.stream.Collectors;
 
 @Service
 public class PurposeCommentService {
@@ -58,4 +66,20 @@ public class PurposeCommentService {
                 .setContent(resource.getContent());
     }
 
+    public PageResult<?> readAll(Long purposeId, Pageable pageable) {
+        purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않은 목적입니다.", HttpStatus.NOT_FOUND));
+        Page<PurposeComment> pageComment = purposeCommentRepository.findByPurposeId(purposeId, pageable);
+
+        return PageResult.of(pageable.getPageNumber() == pageComment.getTotalPages() - 1,
+                pageComment.get()
+                        .map(p -> ResponseStoryComment.builder()
+                                .commentId(p.getId())
+                                .content(p.getContent())
+                                .userId(p.getUser().getId())
+                                .userName(p.getUser().getName())
+                                .userProfileUrl(p.getUser().getProfileUrl())
+                                .createDate(p.getCreateDate())
+                                .build()
+                        ).collect(Collectors.toList()));
+    }
 }

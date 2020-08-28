@@ -1,6 +1,7 @@
 package com.downfall.caterplanner.common.entity;
 
 import com.downfall.caterplanner.common.entity.converter.ScopeConverter;
+import com.downfall.caterplanner.common.entity.converter.StatConverter;
 import com.downfall.caterplanner.common.entity.enumerate.Scope;
 import com.downfall.caterplanner.common.entity.enumerate.Stat;
 import lombok.*;
@@ -32,7 +33,7 @@ public class Purpose extends BaseModel{
     @Column(nullable = false)
     private String description;
 
-    @Column(name = "photo_url" , nullable = false)
+    @Column(name = "photo_url" , nullable = true)
     private String photoUrl;
 
     @Convert(converter = ScopeConverter.class)
@@ -45,7 +46,7 @@ public class Purpose extends BaseModel{
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Convert(converter =  ScopeConverter.class)
+    @Convert(converter =  StatConverter.class)
     @Column(nullable = false)
     private Stat stat;
 
@@ -53,7 +54,7 @@ public class Purpose extends BaseModel{
     private int achieve;
 
     @ToString.Exclude
-    @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 

@@ -8,6 +8,7 @@ import com.downfall.caterplanner.common.entity.enumerate.Stat;
 import com.downfall.caterplanner.common.repository.PurposeRepository;
 import com.downfall.caterplanner.common.repository.StoryRepository;
 import com.downfall.caterplanner.common.repository.UserRepository;
+import com.downfall.caterplanner.purpose.model.request.GoalResource;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurpose;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurposeComment;
 import com.downfall.caterplanner.purpose.model.request.PurposeAchieve;
@@ -15,18 +16,25 @@ import com.downfall.caterplanner.purpose.model.request.PurposeResource;
 import com.downfall.caterplanner.purpose.model.response.ResponseGoal;
 import com.downfall.caterplanner.story.model.response.ResponseStory;
 import com.downfall.caterplanner.user.model.response.ResponseUser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
 
 @Service
+@Transactional
 public class PurposeService {
 
     @Autowired
@@ -41,6 +49,7 @@ public class PurposeService {
     @Autowired
     private S3Util s3Util;
 
+    private ObjectMapper mapper = new ObjectMapper();
 
 
     private String getPhotoUrl(Long id, MultipartFile photo) throws IOException {
@@ -48,27 +57,28 @@ public class PurposeService {
         return s3Util.upload(newFileName, photo);
     }
 
-    @Transactional
-    public ResponsePurpose create(Long authorId, PurposeResource resource) throws IOException {
-        User author = userRepository.findById(authorId).orElseThrow(() -> new HttpRequestException("존재하지 않는 유저입니다.", HttpStatus.BAD_REQUEST));
+    public ResponsePurpose create(Long userId, PurposeResource resource) throws IOException {
+        User author = userRepository.findById(userId).orElseThrow(() -> new HttpRequestException("존재하지 않는 유저입니다.", HttpStatus.BAD_REQUEST));
+
 
         Purpose purpose = purposeRepository.save(
                 Purpose.builder()
                     .name(resource.getName())
                     .description(resource.getDescription())
-                    .startDate(resource.getStartDate())
-                    .endDate(resource.getEndDate())
+                    .startDate( LocalDate.parse(resource.getStartDate(), DateTimeFormatter.ISO_DATE))
+                    .endDate( LocalDate.parse(resource.getEndDate(), DateTimeFormatter.ISO_DATE))
                     .disclosureScope(Scope.findScope(resource.getDisclosureScope()))
                     .stat(Stat.findStat(resource.getStat()))
                     .user(author)
                     .build()
         );
 
+        List<Goal> goalList = putDetailPlans(resource, purpose);
+
         String photoUrl = getPhotoUrl(purpose.getId(), resource.getPhoto());
 
         purpose.setPhotoUrl(photoUrl);
 
-        List<Goal> goalList = putDetailPlans(resource, purpose);
 
         return ResponsePurpose.builder()
                         .id(purpose.getId())
@@ -81,13 +91,6 @@ public class PurposeService {
 
         User author = purpose.getUser();
 
-        List<PurposeCheer> purposeCheers = purpose.getCheers();
-        boolean canCheers = true;
-
-        for(PurposeCheer purposeCheer : purposeCheers){
-            if(purposeCheer.getKey().getUserId().equals(userId))
-                canCheers = false;
-        }
 
         //스토리는 최대 10개까지만 보여줌
         List<ResponseStory> storiesHeader = storyRepository.findTop10ByPurposeId(purpose.getId()).stream()
@@ -101,9 +104,10 @@ public class PurposeService {
                 ).collect(Collectors.toList());
 
         return ResponsePurpose.defaultBuilder(purpose)
+                .isOwner(userId.equals(purpose.getUser().getId()))
                 .achieve(purpose.getAchieve())
-                .cheers(purposeCheers.size())
-                .canCheers(canCheers)
+                .cheers(purpose.getCheers().size())
+                .canCheers(isCanCheer(purpose.getCheers(), userId))
                 .storyTags(storiesHeader)
                 .comments(purpose.getComments().stream()
                         .map(c -> ResponsePurposeComment.builder()
@@ -119,43 +123,51 @@ public class PurposeService {
                 .author(ResponseUser.builder()
                             .id(author.getId())
                             .name(author.getName())
+                            .profileUrl(author.getProfileUrl())
                             .build())
                 .detailPlans(purpose.getDetailPlans().stream()
                         .map(g -> getGoalBuild(g)).collect(Collectors.toList()))
                 .build();
     }
 
-    @Transactional
-    public ResponsePurpose modifyAll(Long id, PurposeResource resource) throws IOException {
-        Purpose purpose = changePurpose(id, resource);
+    public ResponsePurpose modifyAll(Long userId, Long purposeId, PurposeResource resource) throws IOException {
+
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+
+        if(!userId.equals(purpose.getUser().getId()))
+            throw new HttpRequestException("권한이 없습니다" , HttpStatus.UNAUTHORIZED);
+
+        changePurpose(purpose, resource);
 
         List<Goal> goalList = putDetailPlans(resource, purpose);
+
 
         Purpose updatedPurpose = purposeRepository.save(purpose);
 
         //변경된 정보만 리턴
         return ResponsePurpose.builder()
-                .id(purpose.getId())
                 .photoUrl(purpose.getPhotoUrl())
                 .build();
     }
 
-    @Transactional
-    public ResponsePurpose modify(Long id, PurposeResource resource) throws IOException {
-        Purpose purpose = changePurpose(id, resource);
+    public ResponsePurpose modify(Long userId, Long purposeId, PurposeResource resource) throws IOException {
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+
+        if(!userId.equals(purpose.getUser().getId()))
+            throw new HttpRequestException("권한이 없습니다" , HttpStatus.UNAUTHORIZED);
+
+        changePurpose(purpose, resource);
 
         Purpose updatedPurpose =  purposeRepository.save(purpose);
 
         //변경된 정보만 리턴
         return ResponsePurpose.builder()
-                .id(purpose.getId())
                 .photoUrl(purpose.getPhotoUrl())
                 .build();
     }
 
-    @Transactional
-    public void update(Long id, PurposeAchieve data) {
-        Purpose purpose = purposeRepository.findById(id).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public void update(Long userId, Long purposeId, PurposeAchieve data) {
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
 
         purpose
                 .setAchieve(data.getAchieve())
@@ -165,7 +177,8 @@ public class PurposeService {
         data.getDetailPlansAchieves().stream().forEach(
                 goalAchieve -> {
                     purpose.getDetailPlans().get(goalAchieve.getId().intValue())
-                            .setAchieve(goalAchieve.getAchieve())
+                            .setBriefingCount(goalAchieve.getBriefingCount())
+                            .setLastBriefingDate(LocalDate.parse(goalAchieve.getLastBriefingDate(), DateTimeFormatter.ISO_DATE))
                             .setStat(Stat.findStat(goalAchieve.getStat()));
                 }
         );
@@ -173,41 +186,76 @@ public class PurposeService {
         purposeRepository.save(purpose);
     }
 
-    @Transactional
-    public void delete(Long payloadId, Long id) {
-        Purpose purpose = purposeRepository.findById(id).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public void delete(Long userId, Long purposeId) {
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
 
-        if(!purpose.getUser().getId().equals(id))
+        if(!purpose.getUser().getId().equals(purposeId))
             throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
 
 
-        purposeRepository.deleteById(id);
+        purposeRepository.deleteById(purposeId);
+    }
+
+    public List<ResponsePurpose> readAll(Long userId, String prefix, Pageable pageable){
+        return purposeRepository.findByNameStartsWith(prefix, pageable).get()
+                .map(p -> ResponsePurpose.builder()
+                                .id(p.getId())
+                                .name(p.getName())
+                                .achieve(p.getAchieve())
+                                .description(p.getDescription())
+                                .photoUrl(p.getPhotoUrl())
+                                .endDate(p.getEndDate())
+                                .stat(p.getStat().getValue())
+                                .canCheers(isCanCheer(p.getCheers(), userId))
+                                .cheers(p.getCheers().size())
+                                .author(ResponseUser.builder()
+                                        .id(p.getUser().getId())
+                                        .name(p.getUser().getName())
+                                        .profileUrl(p.getUser().getProfileUrl())
+                                        .build())
+                                .createDate(p.getCreateDate())
+                                .build()).collect(Collectors.toList());
+    }
+
+    private boolean isCanCheer(List<PurposeCheer> cheerList, Long targetId){
+        boolean canLikes = true;
+
+        for(PurposeCheer storyLikes : cheerList){
+            if(storyLikes.getKey().getUserId().equals(targetId))
+                canLikes = false;
+        }
+        return canLikes;
     }
 
 
-    private Purpose changePurpose(Long id, PurposeResource resource) throws IOException {
-        Purpose purpose = purposeRepository.findById(id).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    private Purpose changePurpose(Purpose purpose, PurposeResource resource) throws IOException {
 
         purpose.setName(resource.getName())
                .setPhotoUrl(getPhotoUrl(purpose.getId(), resource.getPhoto()))
-               .setStartDate(resource.getStartDate())
-               .setEndDate(resource.getEndDate())
+               .setStartDate(null)
+               .setEndDate(null)
                .setDisclosureScope(Scope.findScope(resource.getDisclosureScope()))
                .setStat(Stat.findStat(resource.getStat()));
-
+        if(resource.getPhoto() != null)
+            purpose.setPhotoUrl(getPhotoUrl(purpose.getId(), resource.getPhoto()));
 
         return purpose;
     }
 
-    private List<Goal> putDetailPlans(PurposeResource resource, Purpose purpose) {
-        List<Goal> goalList = resource.getDetailPlans().stream()
+    private List<Goal> putDetailPlans(PurposeResource resource, Purpose purpose) throws JsonProcessingException {
+
+        List<GoalResource> detailPlans = mapper.readValue(resource.getDetailPlans(),new TypeReference<List<GoalResource>>(){});
+
+        List<Goal> goalList = detailPlans.stream()
                 .map(g -> Goal.builder()
-                        .key(Goal.Key.of(g.getPurposeId(), g.getId()))
+                        .key(Goal.Key.of(purpose.getId(), g.getId()))
                         .name(g.getName())
                         .description(g.getDescription())
                         .color(g.getColor())
-                        .startDate(g.getStartDate())
-                        .endDate(g.getEndDate())
+                        .briefingCount(g.getBriefingCount())
+                        .lastBriefingDate(LocalDate.parse(g.getLastBriefingDate(), DateTimeFormatter.ISO_DATE))
+                        .startDate(LocalDate.parse(g.getStartDate(), DateTimeFormatter.ISO_DATE))
+                        .endDate(LocalDate.parse(g.getEndDate(), DateTimeFormatter.ISO_DATE))
                         .cycle(g.getCycle())
                         .stat(Stat.findStat(g.getStat()))
                         .build()
@@ -226,6 +274,8 @@ public class PurposeService {
                 .cycle(g.getCycle())
                 .description(g.getDescription())
                 .name(g.getName())
+                .briefingCount(g.getBriefingCount())
+                .lastBriefingDate(g.getLastBriefingDate())
                 .startDate(g.getStartDate())
                 .endDate(g.getEndDate())
                 .stat(g.getStat().getValue())

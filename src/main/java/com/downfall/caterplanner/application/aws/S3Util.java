@@ -24,7 +24,7 @@ public class S3Util {
     @Autowired
     private AmazonS3 s3Client;
 
-    @Value("${cloud.aws.aws.bucket}")
+    @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
 

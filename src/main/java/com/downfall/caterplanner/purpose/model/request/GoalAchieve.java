@@ -15,10 +15,11 @@ public class GoalAchieve {
     @NotNull(message = "아이디는 필수입니다.")
     private Long id;
 
-    @Min(0)
-    @Max(100)
-    @NotNull(message = "달성도 수치는 필수입니다.")
-    private int achieve;
+    @NotNull(message = "브리핑 갯수는 필수입니다.")
+    private Integer briefingCount;
+
+    @NotNull(message = "마지막 브리핑 날짜는 필수입니다.")
+    private String lastBriefingDate;
 
     @Min(1)
     @Max(3)

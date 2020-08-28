@@ -48,8 +48,11 @@ public class Goal extends BaseModel{
     @Convert(converter = StatConverter.class)
     private Stat stat;
 
-    @Column(columnDefinition = "integer default 0")
-    private int achieve;
+    @Column(name = "briefingCount", columnDefinition = "integer default 0")
+    private int briefingCount;
+
+    @Column(name = "last_briefing_date")
+    private LocalDate lastBriefingDate;
 
     @Data
     @NoArgsConstructor

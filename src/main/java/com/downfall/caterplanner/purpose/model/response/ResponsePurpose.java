@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -27,25 +28,29 @@ public class ResponsePurpose {
 
     private String photoUrl;
 
-    private int disclosureScope;
+    private Integer disclosureScope;
 
     private LocalDate startDate;
 
     private LocalDate endDate;
 
-    private int stat;
+    private Integer stat;
 
-    private int achieve;
+    private Integer achieve;
 
     private List<ResponseGoal> detailPlans;
 
-    private int cheers;
+    private Integer cheers;
 
-    private boolean canCheers;
+    private Boolean canCheers;
+
+    private LocalDateTime createDate;
 
     private List<ResponsePurposeComment> comments;
 
     private List<ResponseStory> storyTags;
+
+    private Boolean isOwner;
 
     public static ResponsePurposeBuilder defaultBuilder(Purpose purpose){
         return ResponsePurpose.builder()
