@@ -7,9 +7,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface StoryCommentRepository extends JpaRepository<StoryComment, Long> {
 
-    Page<StoryComment> findByStoryId(Long storyId, Pageable pageable);
+    public Page<StoryComment> findByStoryId(Long storyId, Pageable pageable);
+
+    public List<StoryComment> findTop10ByStoryId(Long storyId);
+
 
 }

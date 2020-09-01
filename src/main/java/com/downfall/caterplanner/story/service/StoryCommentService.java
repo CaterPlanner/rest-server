@@ -3,11 +3,13 @@ package com.downfall.caterplanner.story.service;
 import com.downfall.caterplanner.application.exception.HttpRequestException;
 import com.downfall.caterplanner.common.entity.Story;
 import com.downfall.caterplanner.common.entity.StoryComment;
+import com.downfall.caterplanner.common.entity.User;
 import com.downfall.caterplanner.common.model.network.PageResult;
 import com.downfall.caterplanner.common.repository.StoryCommentRepository;
 import com.downfall.caterplanner.common.repository.StoryRepository;
 import com.downfall.caterplanner.story.model.request.StoryCommentResource;
 import com.downfall.caterplanner.story.model.response.ResponseStoryComment;
+import com.downfall.caterplanner.user.model.response.ResponseUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -71,14 +73,21 @@ public class StoryCommentService {
 
         return PageResult.of(pageable.getPageNumber() == pageComment.getTotalPages() - 1,
                  pageComment.get()
-                         .map(s -> ResponseStoryComment.builder()
+                         .map(s -> {
+
+                             User user = s.getUser();
+
+                             return ResponseStoryComment.builder()
                                      .commentId(s.getId())
                                      .content(s.getContent())
-                                     .userId(s.getUser().getId())
-                                     .userName(s.getUser().getName())
-                                     .userProfileUrl(s.getUser().getProfileUrl())
+                                     .user(ResponseUser.builder()
+                                             .id(user.getId())
+                                             .name(user.getName())
+                                             .profileUrl(user.getProfileUrl())
+                                             .build())
                                      .createDate(s.getCreateDate())
-                                     .build()
+                                     .build();
+                         }
                  ).collect(Collectors.toList()));
     }
 }

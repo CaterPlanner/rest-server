@@ -5,6 +5,7 @@ import com.downfall.caterplanner.application.exception.HttpRequestException;
 import com.downfall.caterplanner.common.entity.*;
 import com.downfall.caterplanner.common.entity.enumerate.Scope;
 import com.downfall.caterplanner.common.entity.enumerate.Stat;
+import com.downfall.caterplanner.common.repository.PurposeCommentRepository;
 import com.downfall.caterplanner.common.repository.PurposeRepository;
 import com.downfall.caterplanner.common.repository.StoryRepository;
 import com.downfall.caterplanner.common.repository.UserRepository;
@@ -45,6 +46,9 @@ public class PurposeService {
 
     @Autowired
     private StoryRepository storyRepository;
+
+    @Autowired
+    private PurposeCommentRepository purposeCommentRepository;
 
     @Autowired
     private S3Util s3Util;
@@ -114,9 +118,11 @@ public class PurposeService {
                                     .commentId(c.getId())
                                     .content(c.getContent())
                                     .createDate(c.getCreateDate())
-                                    .userId(c.getUser().getId())
-                                    .userName(c.getUser().getName())
-                                    .userProfileUrl(c.getUser().getProfileUrl())
+                                    .user(ResponseUser.builder()
+                                            .id(c.getUser().getId())
+                                            .name(c.getUser().getName())
+                                            .profileUrl(c.getUser().getProfileUrl())
+                                            .build())
                                     .build()
                         ).collect(Collectors.toList())
                 )
@@ -174,7 +180,7 @@ public class PurposeService {
                 .setStat(Stat.findStat(data.getStat()));
 
 
-        data.getDetailPlansAchieves().stream().forEach(
+        data.getModifiedGoalAchieve().stream().forEach(
                 goalAchieve -> {
                     purpose.getDetailPlans().get(goalAchieve.getId().intValue())
                             .setBriefingCount(goalAchieve.getBriefingCount())
@@ -183,7 +189,8 @@ public class PurposeService {
                 }
         );
 
-        purposeRepository.save(purpose);
+        Purpose purposed = purposeRepository.save(purpose);
+        System.out.println(purposed.getAchieve());
     }
 
     public void delete(Long userId, Long purposeId) {

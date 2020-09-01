@@ -1,5 +1,6 @@
 package com.downfall.caterplanner.purpose.model.request;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,8 +10,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-@Getter
-@NoArgsConstructor
+@Data
 public class PurposeAchieve {
 
     @Min(0)
@@ -23,7 +23,7 @@ public class PurposeAchieve {
     private int stat;
 
     @Valid
-    private List<GoalAchieve> detailPlansAchieves;
+    private List<GoalAchieve> modifiedGoalAchieve;
 
 }
 

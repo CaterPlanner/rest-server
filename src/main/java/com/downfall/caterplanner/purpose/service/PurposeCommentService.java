@@ -12,6 +12,7 @@ import com.downfall.caterplanner.common.repository.UserRepository;
 import com.downfall.caterplanner.purpose.model.request.PurposeCommentResource;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurposeComment;
 import com.downfall.caterplanner.story.model.response.ResponseStoryComment;
+import com.downfall.caterplanner.user.model.response.ResponseUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -72,14 +73,19 @@ public class PurposeCommentService {
 
         return PageResult.of(pageable.getPageNumber() == pageComment.getTotalPages() - 1,
                 pageComment.get()
-                        .map(p -> ResponseStoryComment.builder()
+                        .map(p -> {
+
+                            User user = p.getUser();
+                            return ResponseStoryComment.builder()
                                 .commentId(p.getId())
                                 .content(p.getContent())
-                                .userId(p.getUser().getId())
-                                .userName(p.getUser().getName())
-                                .userProfileUrl(p.getUser().getProfileUrl())
+                                .user(ResponseUser.builder()
+                                        .id(user.getId())
+                                        .profileUrl(user.getProfileUrl())
+                                        .name(user.getName())
+                                        .build())
                                 .createDate(p.getCreateDate())
-                                .build()
+                                .build();}
                         ).collect(Collectors.toList()));
     }
 }

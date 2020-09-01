@@ -1,5 +1,6 @@
 package com.downfall.caterplanner.purpose.model.response;
 
+import com.downfall.caterplanner.user.model.response.ResponseUser;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,11 +16,7 @@ public class ResponsePurposeComment {
 
     private Long commentId;
 
-    private Long userId;
-
-    private String userProfileUrl;
-
-    private String userName;
+    private ResponseUser user;
 
     private String content;
 

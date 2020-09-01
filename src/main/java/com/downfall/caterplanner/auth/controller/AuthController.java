@@ -32,6 +32,7 @@ public class AuthController {
     @PostMapping("social/google")
     public ResponseHeader<?> authGoogle(@RequestBody @Valid RequestAuthToken resource){
 
+
         try {
             final String CLIENT_ID = "824557913187-k8onrhv3nt0q5cbfvc2hf6gamspjseo1.apps.googleusercontent.com";
 
@@ -41,7 +42,7 @@ public class AuthController {
                     .build();
 
             GoogleIdToken idToken = verifier.verify(resource.getIdToken());
-
+            
             GoogleIdToken.Payload payload = idToken.getPayload();
 
             String email = payload.getEmail();

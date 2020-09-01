@@ -1,6 +1,7 @@
 package com.downfall.caterplanner.purpose.model.request;
 
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -8,8 +9,7 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
-@Getter
-@NoArgsConstructor
+@Data
 public class GoalAchieve {
 
     @NotNull(message = "아이디는 필수입니다.")

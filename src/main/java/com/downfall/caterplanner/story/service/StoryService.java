@@ -8,6 +8,7 @@ import com.downfall.caterplanner.common.entity.User;
 import com.downfall.caterplanner.common.entity.enumerate.StoryType;
 import com.downfall.caterplanner.common.model.network.PageResult;
 import com.downfall.caterplanner.common.repository.PurposeRepository;
+import com.downfall.caterplanner.common.repository.StoryCommentRepository;
 import com.downfall.caterplanner.common.repository.StoryRepository;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurpose;
 import com.downfall.caterplanner.story.model.request.StoryResource;
@@ -35,6 +36,9 @@ public class StoryService {
 
     @Autowired
     private PurposeRepository purposeRepository;
+
+    @Autowired
+    private StoryCommentRepository storyCommentRepository;
 
     public ResponseStory create(Long userId, StoryResource resource) {
         Purpose purpose = purposeRepository.findById(resource.getPurposeId()).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.BAD_REQUEST));
@@ -66,13 +70,15 @@ public class StoryService {
                 .canLikes(isCanLikes(story.getLikes(), userId))
                 .likesCount(story.getLikes().size())
                 .commentCount(story.getComments().size())
-                .comments(story.getComments().stream()
+                .comments(storyCommentRepository.findTop10ByStoryId(story.getId()).stream()
                         .map(c -> ResponseStoryComment.builder()
                                 .commentId(c.getId())
                                 .content(c.getContent())
-                                .userId(c.getUser().getId())
-                                .userName(c.getUser().getName())
-                                .userProfileUrl(c.getUser().getProfileUrl())
+                                .user(ResponseUser.builder()
+                                        .id(c.getUser().getId())
+                                        .name(c.getUser().getName())
+                                        .profileUrl(c.getUser().getProfileUrl())
+                                        .build())
                                 .createDate(c.getCreateDate())
                                 .build()
                         ).collect(Collectors.toList()))
