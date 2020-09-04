@@ -14,6 +14,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +31,7 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("social/google")
-    public ResponseHeader<?> authGoogle(@RequestBody @Valid RequestAuthToken resource){
+    public ResponseEntity<?> authGoogle(@RequestBody @Valid RequestAuthToken resource){
 
 
         try {
@@ -65,7 +66,7 @@ public class AuthController {
     }
 
     @PostMapping("refreshToken")
-    public ResponseHeader<?> refreshToken(@RequestBody @Valid RequestRefreshToken resource){
+    public ResponseEntity<?> refreshToken(@RequestBody @Valid RequestRefreshToken resource){
         System.out.println("refreshToken 요청 들어옴");
         return ResponseHeader.<UserToken>builder()
                 .data(authService.tokenRefresh(resource))
@@ -75,7 +76,7 @@ public class AuthController {
     }
 
     @GetMapping("logout")
-    public ResponseHeader<?> logout(@AuthenticationPrincipal JwtPayload payload){
+    public ResponseEntity<?> logout(@AuthenticationPrincipal JwtPayload payload){
         authService.logout(payload.getId());
         System.out.println("로그아웃 요청 들어옴");
         return ResponseHeader.builder()

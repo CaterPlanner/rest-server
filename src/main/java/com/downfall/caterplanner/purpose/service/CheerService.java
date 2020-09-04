@@ -26,14 +26,14 @@ public class CheerService {
 
         purposeCheerRepository.save(
                 PurposeCheer.builder()
-                    .key(PurposeCheer.Key.of(purposeId, userId))
+                    .purposeId(purposeId)
+                    .userId(userId)
                     .build()
         );
     }
 
     public void delete(Long userId, Long purposeId) {
         Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
-
-        purposeCheerRepository.deleteById(PurposeCheer.Key.of(purposeId,userId));
+        purposeCheerRepository.deleteByPK(purposeId, userId);
     }
 }

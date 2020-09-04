@@ -70,6 +70,7 @@ public class StoryService {
                 .canLikes(isCanLikes(story.getLikes(), userId))
                 .likesCount(story.getLikes().size())
                 .commentCount(story.getComments().size())
+                .isOwner(user.getId().equals(userId))
                 .comments(storyCommentRepository.findTop10ByStoryId(story.getId()).stream()
                         .map(c -> ResponseStoryComment.builder()
                                 .commentId(c.getId())
@@ -94,13 +95,14 @@ public class StoryService {
                                 .id(p.getId())
                                 .name(p.getName())
                                 .achieve(p.getAchieve())
+                                .photoUrl(p.getPhotoUrl())
                                 .build()
                 ).build();
     }
 
     @Transactional
-    public void update(Long userId, StoryResource resource) {
-        Story story = storyRepository.findById(resource.getPurposeId()).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
+    public void update(Long userId, Long storyId, StoryResource resource) {
+        Story story = storyRepository.findById(storyId).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
 
         if(!story.getPurpose().getUser().getId().equals(userId) )
             throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
@@ -125,7 +127,6 @@ public class StoryService {
         Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.BAD_REQUEST));
 
         Page<Story> pageResult = storyRepository.findByPurposeId(purpose.getId(), pageable);
-
         return PageResult.of(pageable.getPageNumber() == pageResult.getTotalPages() - 1 ,
                     pageResult.get().map(s -> getResponseStoryByFront(userId, s)).collect(Collectors.toList()));
     }
@@ -142,7 +143,7 @@ public class StoryService {
         boolean canLikes = true;
 
         for(StoryLikes storyLikes : storyLikesList){
-            if(storyLikes.getKey().getUserId().equals(targetId))
+            if(storyLikes.getUserId().equals(targetId))
                 canLikes = false;
         }
         return canLikes;

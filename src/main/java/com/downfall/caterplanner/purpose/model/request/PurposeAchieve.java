@@ -18,7 +18,7 @@ public class PurposeAchieve {
     @NotNull(message = "달성도 수치는 필수입니다.")
     private int achieve;
 
-    @Min(1)
+    @Min(0)
     @Max(3)
     private int stat;
 

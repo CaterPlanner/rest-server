@@ -6,6 +6,7 @@ import com.downfall.caterplanner.purpose.model.request.PurposeCommentResource;
 import com.downfall.caterplanner.purpose.service.PurposeCommentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +18,7 @@ public class PurposeCommentController {
     private PurposeCommentService purposeCommentService;
 
     @PostMapping
-    public ResponseHeader<?> addComment(@AuthenticationPrincipal JwtPayload payload, @RequestBody PurposeCommentResource resource){
+    public ResponseEntity<?> addComment(@AuthenticationPrincipal JwtPayload payload, @RequestBody PurposeCommentResource resource){
         purposeCommentService.create(payload.getId(), resource);
         return ResponseHeader.builder()
                     .status(HttpStatus.OK)
@@ -26,7 +27,7 @@ public class PurposeCommentController {
     }
 
     @DeleteMapping("{id}")
-    public ResponseHeader<?> removeComment(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    public ResponseEntity<?> removeComment(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         purposeCommentService.delete(payload.getId(), id);
         return ResponseHeader.builder()
                 .status(HttpStatus.OK)
@@ -35,7 +36,7 @@ public class PurposeCommentController {
     }
 
     @PutMapping("{id}")
-    public ResponseHeader<?> modifyComment(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @RequestBody PurposeCommentResource resource){
+    public ResponseEntity<?> modifyComment(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @RequestBody PurposeCommentResource resource){
         purposeCommentService.update(payload.getId(), id, resource);
         return ResponseHeader.builder()
                 .status(HttpStatus.OK)

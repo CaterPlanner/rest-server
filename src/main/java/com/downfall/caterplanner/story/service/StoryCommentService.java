@@ -12,6 +12,7 @@ import com.downfall.caterplanner.story.model.response.ResponseStoryComment;
 import com.downfall.caterplanner.user.model.response.ResponseUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,9 @@ public class StoryCommentService {
     @Autowired
     private StoryRepository storyRepository;
 
+    //storyComment에서 fk 적용못함 넣으면 애초에 생성된다는 의미로 들어가기때문에 storycomment는 insertable = false 조건이 걸려 있어
+    //아무일도 일어나지 않는다.
+
     @Transactional
     public void create(Long userId, StoryCommentResource resource) {
         Story story = storyRepository.findById(resource.getStoryId()).orElseThrow(
@@ -36,13 +40,15 @@ public class StoryCommentService {
 
         StoryComment comment =  storyCommentRepository.save(
                 StoryComment.builder()
-                        .story(story)
+                        .storyId(story.getId())
                         .userId(userId)
                         .content(resource.getContent())
                         .build()
         );
 
     }
+
+
 
     @Transactional
     public void delete(Long userId, Long commentId) {
@@ -67,27 +73,27 @@ public class StoryCommentService {
 
     }
 
-    public PageResult<?> readAll(Long storyId, Integer page, Pageable pageable) {
+    public PageResult<?> readAll(Long userId, Long storyId, Pageable pageable) {
         storyRepository.findById(storyId).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
         Page<StoryComment> pageComment = storyCommentRepository.findByStoryId(storyId, pageable);
 
-        return PageResult.of(pageable.getPageNumber() == pageComment.getTotalPages() - 1,
-                 pageComment.get()
-                         .map(s -> {
+        return PageResult.of(pageable.getPageNumber() >= pageComment.getTotalPages() - 1,
+                pageComment.get()
+                        .map(s -> {
 
-                             User user = s.getUser();
+                                    User user = s.getUser();
 
-                             return ResponseStoryComment.builder()
-                                     .commentId(s.getId())
-                                     .content(s.getContent())
-                                     .user(ResponseUser.builder()
-                                             .id(user.getId())
-                                             .name(user.getName())
-                                             .profileUrl(user.getProfileUrl())
-                                             .build())
-                                     .createDate(s.getCreateDate())
-                                     .build();
-                         }
-                 ).collect(Collectors.toList()));
+                                    return ResponseStoryComment.builder()
+                                            .commentId(s.getId())
+                                            .content(s.getContent())
+                                            .user(ResponseUser.builder()
+                                                    .id(user.getId())
+                                                    .name(user.getName())
+                                                    .profileUrl(user.getProfileUrl())
+                                                    .build())
+                                            .createDate(s.getCreateDate())
+                                            .build();
+                                }
+                        ).collect(Collectors.toList()));
     }
 }

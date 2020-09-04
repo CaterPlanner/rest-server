@@ -77,7 +77,9 @@ public class PurposeService {
                     .build()
         );
 
-        List<Goal> goalList = putDetailPlans(resource, purpose);
+        List<Goal> goalList = decodeDetailPlans(resource, purpose);
+
+        purpose.setDetailPlans(goalList.size() == 0 ? null : goalList);
 
         String photoUrl = getPhotoUrl(purpose.getId(), resource.getPhoto());
 
@@ -111,7 +113,7 @@ public class PurposeService {
                 .isOwner(userId.equals(purpose.getUser().getId()))
                 .achieve(purpose.getAchieve())
                 .cheers(purpose.getCheers().size())
-                .canCheers(isCanCheer(purpose.getCheers(), userId))
+                .canCheer(isCanCheer(purpose.getCheers(), userId))
                 .storyTags(storiesHeader)
                 .comments(purpose.getComments().stream()
                         .map(c -> ResponsePurposeComment.builder()
@@ -145,8 +147,11 @@ public class PurposeService {
 
         changePurpose(purpose, resource);
 
-        List<Goal> goalList = putDetailPlans(resource, purpose);
+        List<Goal> goalList = decodeDetailPlans(resource, purpose);
 
+        purpose.getDetailPlans().clear();
+        purpose.getDetailPlans().addAll(goalList);
+        purpose.setAchieve(0);
 
         Purpose updatedPurpose = purposeRepository.save(purpose);
 
@@ -196,11 +201,11 @@ public class PurposeService {
     public void delete(Long userId, Long purposeId) {
         Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
 
-        if(!purpose.getUser().getId().equals(purposeId))
+        if(!purpose.getUser().getId().equals(userId))
             throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
 
-
         purposeRepository.deleteById(purposeId);
+        s3Util.delete(purpose.getPhotoUrl());
     }
 
     public List<ResponsePurpose> readAll(Long userId, String prefix, Pageable pageable){
@@ -213,7 +218,7 @@ public class PurposeService {
                                 .photoUrl(p.getPhotoUrl())
                                 .endDate(p.getEndDate())
                                 .stat(p.getStat().getValue())
-                                .canCheers(isCanCheer(p.getCheers(), userId))
+                                .canCheer(isCanCheer(p.getCheers(), userId))
                                 .cheers(p.getCheers().size())
                                 .author(ResponseUser.builder()
                                         .id(p.getUser().getId())
@@ -228,7 +233,7 @@ public class PurposeService {
         boolean canLikes = true;
 
         for(PurposeCheer storyLikes : cheerList){
-            if(storyLikes.getKey().getUserId().equals(targetId))
+            if(storyLikes.getUserId().equals(targetId))
                 canLikes = false;
         }
         return canLikes;
@@ -238,18 +243,18 @@ public class PurposeService {
     private Purpose changePurpose(Purpose purpose, PurposeResource resource) throws IOException {
 
         purpose.setName(resource.getName())
-               .setPhotoUrl(getPhotoUrl(purpose.getId(), resource.getPhoto()))
                .setStartDate(null)
                .setEndDate(null)
                .setDisclosureScope(Scope.findScope(resource.getDisclosureScope()))
                .setStat(Stat.findStat(resource.getStat()));
+
         if(resource.getPhoto() != null)
             purpose.setPhotoUrl(getPhotoUrl(purpose.getId(), resource.getPhoto()));
 
         return purpose;
     }
 
-    private List<Goal> putDetailPlans(PurposeResource resource, Purpose purpose) throws JsonProcessingException {
+    private List<Goal> decodeDetailPlans(PurposeResource resource, Purpose purpose) throws JsonProcessingException {
 
         List<GoalResource> detailPlans = mapper.readValue(resource.getDetailPlans(),new TypeReference<List<GoalResource>>(){});
 
@@ -260,7 +265,7 @@ public class PurposeService {
                         .description(g.getDescription())
                         .color(g.getColor())
                         .briefingCount(g.getBriefingCount())
-                        .lastBriefingDate(LocalDate.parse(g.getLastBriefingDate(), DateTimeFormatter.ISO_DATE))
+                        .lastBriefingDate(g.getLastBriefingDate() == null ? null : LocalDate.parse(g.getLastBriefingDate(), DateTimeFormatter.ISO_DATE))
                         .startDate(LocalDate.parse(g.getStartDate(), DateTimeFormatter.ISO_DATE))
                         .endDate(LocalDate.parse(g.getEndDate(), DateTimeFormatter.ISO_DATE))
                         .cycle(g.getCycle())
@@ -268,7 +273,6 @@ public class PurposeService {
                         .build()
                 ).collect(Collectors.toList());
 
-        purpose.setDetailPlans(goalList.size() == 0 ? null : goalList);
         return goalList;
     }
 

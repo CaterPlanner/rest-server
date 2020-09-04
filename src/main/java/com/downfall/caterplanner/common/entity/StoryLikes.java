@@ -12,11 +12,17 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@IdClass(StoryLikes.Key.class)
 @Accessors(chain = true)
 public class StoryLikes {
 
-    @EmbeddedId
-    private Key key;
+    @Id
+    @Column(name = "user_id")
+    private Long userId;
+
+    @Id
+    @Column(name = "story_id")
+    private Long storyId;
 
     @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id",insertable=false, updatable=false)
@@ -26,14 +32,11 @@ public class StoryLikes {
     @JoinColumn(name = "story_id",insertable=false, updatable=false)
     private Story story;
 
-    @Embeddable
     @Data
     @NoArgsConstructor
     @AllArgsConstructor(staticName = "of")
     public static class Key implements Serializable {
-        @Column(name = "story_id")
         private Long storyId;
-        @Column(name = "user_id")
         private Long userId;
     }
 }

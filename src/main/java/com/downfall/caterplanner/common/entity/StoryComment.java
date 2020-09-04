@@ -27,6 +27,9 @@ public class StoryComment extends BaseModel{
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "story_id")
+    private Long storyId;
+
     @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id",insertable=false, updatable=false)
     private User user;

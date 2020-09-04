@@ -26,14 +26,14 @@ public class LikesService {
 
         storyLikesRepository.save(
                 StoryLikes.builder()
-                    .key(StoryLikes.Key.of(storyId, userId))
+                    .storyId(storyId)
+                    .userId(userId)
                     .build()
         );
     }
 
     public void delete(Long userId, Long storyId) {
         Story story = storyRepository.findById(storyId).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
-
-        storyLikesRepository.deleteById(StoryLikes.Key.of(storyId, userId));
+        storyLikesRepository.deleteByPK(storyId, userId);
     }
 }

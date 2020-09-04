@@ -67,7 +67,7 @@ public class PurposeCommentService {
                 .setContent(resource.getContent());
     }
 
-    public PageResult<?> readAll(Long purposeId, Pageable pageable) {
+    public PageResult<?> readAll(Long userId, Long purposeId, Pageable pageable) {
         purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않은 목적입니다.", HttpStatus.NOT_FOUND));
         Page<PurposeComment> pageComment = purposeCommentRepository.findByPurposeId(purposeId, pageable);
 

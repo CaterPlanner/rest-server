@@ -9,11 +9,11 @@ import com.downfall.caterplanner.purpose.model.response.ResponsePurpose;
 import com.downfall.caterplanner.purpose.service.CheerService;
 import com.downfall.caterplanner.purpose.service.PurposeCommentService;
 import com.downfall.caterplanner.purpose.service.PurposeService;
-import com.downfall.caterplanner.story.model.response.ResponseStory;
 import com.downfall.caterplanner.story.service.StoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,7 +40,7 @@ public class PurposeController {
 
 
     @PostMapping(consumes = {"multipart/form-data"})
-    public ResponseHeader<?> upload(HttpServletRequest request, @AuthenticationPrincipal JwtPayload payload, @ModelAttribute PurposeResource resource){
+    public ResponseEntity<?> upload(HttpServletRequest request, @AuthenticationPrincipal JwtPayload payload, @ModelAttribute PurposeResource resource){
         try {
             return ResponseHeader.<ResponsePurpose>builder()
                         .data(purposeService.create(payload.getId(), resource))
@@ -57,7 +57,7 @@ public class PurposeController {
     }
 
     @GetMapping("{id}")
-    public ResponseHeader<?> detail(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    public ResponseEntity<?> detail(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         return ResponseHeader.<ResponsePurpose>builder()
                     .data(purposeService.read(payload.getId(), id))
                     .status(HttpStatus.OK)
@@ -66,7 +66,7 @@ public class PurposeController {
     }
 
     @PatchMapping("{id}")
-    public ResponseHeader<?> modify(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute  PurposeResource resource){
+    public ResponseEntity<?> modify(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute  PurposeResource resource){
         try {
             return ResponseHeader.builder()
                     .data(purposeService.modify(payload.getId(), id, resource))
@@ -83,7 +83,7 @@ public class PurposeController {
     }
 
     @PutMapping("{id}")
-    public ResponseHeader<?> modifyAll(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute PurposeResource resource){
+    public ResponseEntity<?> modifyAll(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute PurposeResource resource){
         try {
             return ResponseHeader.builder()
                         .data(purposeService.modifyAll(payload.getId(), id, resource))
@@ -100,7 +100,7 @@ public class PurposeController {
     }
 
     @PatchMapping("{id}/update")
-    public ResponseHeader<?> update(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @RequestBody PurposeAchieve data){
+    public ResponseEntity<?> update(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @RequestBody PurposeAchieve data){
         purposeService.update(payload.getId() ,id, data);
         return ResponseHeader.builder()
                     .status(HttpStatus.OK)
@@ -109,7 +109,7 @@ public class PurposeController {
     }
 
     @DeleteMapping("{id}")
-    public ResponseHeader<?> delete(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    public ResponseEntity<?> delete(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         purposeService.delete(payload.getId(), id);
         return ResponseHeader.builder()
                     .status(HttpStatus.OK)
@@ -117,8 +117,8 @@ public class PurposeController {
                     .build();
     }
 
-    @PostMapping("{id}/cheer/positive")
-    public ResponseHeader<?> positive(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    @PatchMapping("{id}/cheer/positive")
+    public ResponseEntity<?> positive(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         cheerService.create(payload.getId(), id);
         return ResponseHeader.builder()
                 .status(HttpStatus.OK)
@@ -126,8 +126,8 @@ public class PurposeController {
                 .build();
     }
 
-    @PostMapping("{id}/cheer/negative")
-    public ResponseHeader<?> negative(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    @PatchMapping("{id}/cheer/negative")
+    public ResponseEntity<?> negative(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         cheerService.delete(payload.getId(), id);
         return ResponseHeader.builder().status(HttpStatus.OK)
                 .message("응원이 해제되었습니다.")
@@ -135,7 +135,7 @@ public class PurposeController {
     }
 
     @GetMapping("{id}/stories")
-    public ResponseHeader<?> purposeStories(
+    public ResponseEntity<?> purposeStories(
             @AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id,
             @RequestParam("page") Integer page){
 
@@ -147,11 +147,12 @@ public class PurposeController {
     }
 
     @GetMapping("{id}/comments")
-    public ResponseHeader<?> purposeComments(
+    public ResponseEntity<?> purposeComments(
+            @AuthenticationPrincipal JwtPayload payload,
             @PathVariable("id") Long purposeId,
             @RequestParam("page") Integer page){
         return ResponseHeader.<PageResult<?>>builder()
-                    .data(purposeCommentService.readAll(purposeId, PageRequest.of(page, 20)))
+                    .data(purposeCommentService.readAll(payload.getId(), purposeId, PageRequest.of(page, 15)))
                     .message("댓글이 로드되었습니다.")
                     .status(HttpStatus.OK)
                     .build();
@@ -159,7 +160,7 @@ public class PurposeController {
     }
 
     @GetMapping
-    public ResponseHeader<?> list(@AuthenticationPrincipal JwtPayload payload,
+    public ResponseEntity<?> list(@AuthenticationPrincipal JwtPayload payload,
                                   @RequestParam("prefix") String prefix,
                                   @RequestParam("page") Integer page){
         return ResponseHeader.<List<ResponsePurpose>>builder()

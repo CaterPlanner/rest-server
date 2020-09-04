@@ -11,10 +11,9 @@ import com.downfall.caterplanner.story.service.StoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("story")
@@ -30,7 +29,7 @@ public class StoryController {
     private StoryCommentService storyCommentService;
 
     @PostMapping
-    public ResponseHeader<?> upload(@AuthenticationPrincipal JwtPayload payload, @RequestBody StoryResource resource){
+    public ResponseEntity<?> upload(@AuthenticationPrincipal JwtPayload payload, @RequestBody StoryResource resource ){
         return ResponseHeader.<ResponseStory>builder()
                     .data(storyService.create(payload.getId(), resource))
                     .message("스토리 업로드 완료")
@@ -39,7 +38,7 @@ public class StoryController {
     }
 
     @GetMapping("{id}")
-    public ResponseHeader<?> detail(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    public ResponseEntity<?> detail(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         return ResponseHeader.<ResponseStory>builder()
                     .data(storyService.read(payload.getId(), id))
                     .message("세부 스토리 로드 완료")
@@ -48,8 +47,8 @@ public class StoryController {
     }
 
     @PutMapping("{id}")
-    public ResponseHeader<?> modify(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id,  @RequestBody StoryResource resource){
-        storyService.update(payload.getId(), resource);
+    public ResponseEntity<?> modify(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id,  @RequestBody StoryResource resource){
+        storyService.update(payload.getId(), id, resource);
         return ResponseHeader.builder()
                     .message("스토리 변경 완료")
                     .status(HttpStatus.OK)
@@ -57,7 +56,7 @@ public class StoryController {
     }
 
     @DeleteMapping("{id}")
-    public ResponseHeader<?> delete(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    public ResponseEntity<?> delete(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         storyService.delete(payload.getId(), id);
         return ResponseHeader.builder()
                     .message("스토리 삭제 완료")
@@ -66,7 +65,7 @@ public class StoryController {
     }
 
     @PatchMapping("{id}/likes/positive")
-    public ResponseHeader<?> positive(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    public ResponseEntity<?> positive(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         likesService.create(payload.getId(), id);
         return ResponseHeader.builder()
                 .status(HttpStatus.OK)
@@ -75,26 +74,26 @@ public class StoryController {
     }
 
     @PatchMapping("{id}/likes/negative")
-    public ResponseHeader<?> negative(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+    public ResponseEntity<?> negative(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
         likesService.delete(payload.getId(), id);
         return ResponseHeader.builder().status(HttpStatus.OK)
                 .message("좋아요가 해제되었습니다.")
                 .build();
     }
 
-    @GetMapping("{id}/comment")
-    public ResponseHeader<?> storyComments(
+    @GetMapping("{id}/comments")
+    public ResponseEntity<?> storyComments(
             @AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long storyId,
             @RequestParam("page") Integer page){
         return ResponseHeader.builder()
                 .status(HttpStatus.OK)
-                .data(storyCommentService.readAll(storyId, page, PageRequest.of(page, 20)))
+                .data(storyCommentService.readAll(payload.getId(), storyId, PageRequest.of(page, 15)))
                 .message("댓글이 로드되었습니다.")
                 .build();
     }
 
     @GetMapping
-    public ResponseHeader<?> listFront(
+    public ResponseEntity<?> listFront(
             @AuthenticationPrincipal JwtPayload payload,
             @RequestParam(name = "type", required = false) Integer type,
             @RequestParam(name = "page") Integer page){

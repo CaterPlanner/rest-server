@@ -1,8 +1,6 @@
 package com.downfall.caterplanner.application.security.filter;
 
 import com.downfall.caterplanner.application.security.exception.IllegalJwtException;
-import com.downfall.caterplanner.application.security.jwt.JwtPayload;
-import com.downfall.caterplanner.application.security.token.PostJwtAuthenticationToken;
 import com.downfall.caterplanner.application.security.token.PreJwtAuthenticationToken;
 import com.downfall.caterplanner.common.model.network.ResponseHeader;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,10 +56,7 @@ public class JwtAuthenticationFilter extends AbstractAuthenticationProcessingFil
 
         response.getWriter().write(
                 new ObjectMapper().writeValueAsString(
-                        ResponseHeader.builder()
-                            .status(HttpStatus.UNAUTHORIZED)
-                            .message("토큰 인증에 실패하였습니다.")
-                            .build()
+                      new ResponseHeader.Data(HttpStatus.UNAUTHORIZED, "토큰 인증 실패", null)
                 )
         );
 

@@ -42,7 +42,7 @@ public class ResponsePurpose {
 
     private Integer cheers;
 
-    private Boolean canCheers;
+    private Boolean canCheer;
 
     private LocalDateTime createDate;
 
