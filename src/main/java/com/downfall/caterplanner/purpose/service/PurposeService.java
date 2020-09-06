@@ -11,7 +11,6 @@ import com.downfall.caterplanner.common.repository.StoryRepository;
 import com.downfall.caterplanner.common.repository.UserRepository;
 import com.downfall.caterplanner.purpose.model.request.GoalResource;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurpose;
-import com.downfall.caterplanner.purpose.model.response.ResponsePurposeComment;
 import com.downfall.caterplanner.purpose.model.request.PurposeAchieve;
 import com.downfall.caterplanner.purpose.model.request.PurposeResource;
 import com.downfall.caterplanner.purpose.model.response.ResponseGoal;
@@ -64,7 +63,7 @@ public class PurposeService {
     public ResponsePurpose create(Long userId, PurposeResource resource) throws IOException {
         User author = userRepository.findById(userId).orElseThrow(() -> new HttpRequestException("존재하지 않는 유저입니다.", HttpStatus.BAD_REQUEST));
 
-
+        System.out.println(resource);
         Purpose purpose = purposeRepository.save(
                 Purpose.builder()
                     .name(resource.getName())
@@ -97,6 +96,8 @@ public class PurposeService {
 
         User author = purpose.getUser();
 
+        if(purpose.getDisclosureScope() == Scope.PRIVATE && !author.getId().equals(userId))
+            throw new HttpRequestException("비공개한 목적입니다.", HttpStatus.UNAUTHORIZED);
 
         //스토리는 최대 10개까지만 보여줌
         List<ResponseStory> storiesHeader = storyRepository.findTop10ByPurposeId(purpose.getId()).stream()
@@ -105,7 +106,7 @@ public class PurposeService {
                             .id(story.getId())
                             .title(story.getTitle())
                             .type(story.getType().getValue())
-                            .createDate(story.getCreateDate())
+                            .createDate(story.getCreatedDate())
                             .build()
                 ).collect(Collectors.toList());
 
@@ -115,19 +116,20 @@ public class PurposeService {
                 .cheers(purpose.getCheers().size())
                 .canCheer(isCanCheer(purpose.getCheers(), userId))
                 .storyTags(storiesHeader)
-                .comments(purpose.getComments().stream()
-                        .map(c -> ResponsePurposeComment.builder()
-                                    .commentId(c.getId())
-                                    .content(c.getContent())
-                                    .createDate(c.getCreateDate())
-                                    .user(ResponseUser.builder()
-                                            .id(c.getUser().getId())
-                                            .name(c.getUser().getName())
-                                            .profileUrl(c.getUser().getProfileUrl())
-                                            .build())
-                                    .build()
-                        ).collect(Collectors.toList())
-                )
+//                .comments(purpose.getComments().stream()
+//                        .map(c -> ResponsePurposeComment.builder()
+//                                    .commentId(c.getId())
+//                                    .content(c.getContent())
+//                                    .createDate(c.getCreateDate())
+//                                    .user(ResponseUser.builder()
+//                                            .id(c.getUser().getId())
+//                                            .name(c.getUser().getName())
+//                                            .profileUrl(c.getUser().getProfileUrl())
+//                                            .build())
+//                                    .isOwner(c.getUser().getId().equals(userId))
+//                                    .build()
+//                        ).collect(Collectors.toList())
+//                )
                 .author(ResponseUser.builder()
                             .id(author.getId())
                             .name(author.getName())
@@ -184,15 +186,15 @@ public class PurposeService {
                 .setAchieve(data.getAchieve())
                 .setStat(Stat.findStat(data.getStat()));
 
-
-        data.getModifiedGoalAchieve().stream().forEach(
-                goalAchieve -> {
-                    purpose.getDetailPlans().get(goalAchieve.getId().intValue())
-                            .setBriefingCount(goalAchieve.getBriefingCount())
-                            .setLastBriefingDate(LocalDate.parse(goalAchieve.getLastBriefingDate(), DateTimeFormatter.ISO_DATE))
-                            .setStat(Stat.findStat(goalAchieve.getStat()));
-                }
-        );
+        if(data.getModifiedGoalAchieve() != null) {
+            data.getModifiedGoalAchieve().stream().forEach(
+                    goalAchieve -> {
+                        purpose.getDetailPlans().get(goalAchieve.getId().intValue())
+                                .setBriefingCount(goalAchieve.getBriefingCount())
+                                .setLastBriefingDate(LocalDate.parse(goalAchieve.getLastBriefingDate(), DateTimeFormatter.ISO_DATE));
+                    }
+            );
+        }
 
         Purpose purposed = purposeRepository.save(purpose);
         System.out.println(purposed.getAchieve());
@@ -225,9 +227,10 @@ public class PurposeService {
                                         .name(p.getUser().getName())
                                         .profileUrl(p.getUser().getProfileUrl())
                                         .build())
-                                .createDate(p.getCreateDate())
+                                .createDate(p.getCreatedDate())
                                 .build()).collect(Collectors.toList());
     }
+
 
     private boolean isCanCheer(List<PurposeCheer> cheerList, Long targetId){
         boolean canLikes = true;
@@ -240,11 +243,12 @@ public class PurposeService {
     }
 
 
+
     private Purpose changePurpose(Purpose purpose, PurposeResource resource) throws IOException {
 
         purpose.setName(resource.getName())
-               .setStartDate(null)
-               .setEndDate(null)
+               .setStartDate(LocalDate.parse(resource.getStartDate(), DateTimeFormatter.ISO_DATE))
+               .setEndDate(LocalDate.parse(resource.getEndDate(), DateTimeFormatter.ISO_DATE))
                .setDisclosureScope(Scope.findScope(resource.getDisclosureScope()))
                .setStat(Stat.findStat(resource.getStat()));
 
@@ -269,7 +273,6 @@ public class PurposeService {
                         .startDate(LocalDate.parse(g.getStartDate(), DateTimeFormatter.ISO_DATE))
                         .endDate(LocalDate.parse(g.getEndDate(), DateTimeFormatter.ISO_DATE))
                         .cycle(g.getCycle())
-                        .stat(Stat.findStat(g.getStat()))
                         .build()
                 ).collect(Collectors.toList());
 
@@ -289,7 +292,6 @@ public class PurposeService {
                 .lastBriefingDate(g.getLastBriefingDate())
                 .startDate(g.getStartDate())
                 .endDate(g.getEndDate())
-                .stat(g.getStat().getValue())
                 .build();
     }
 }

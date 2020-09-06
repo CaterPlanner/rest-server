@@ -16,8 +16,8 @@ import java.time.LocalDateTime;
 public abstract class BaseModel {
 
     @CreatedDate
-    @Column(name = "create_date")
-    private LocalDateTime createDate;
+    @Column(name = "created_date")
+    private LocalDateTime createdDate;
 
     @LastModifiedDate
     @Column(name = "modified_date")

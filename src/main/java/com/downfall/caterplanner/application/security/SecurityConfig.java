@@ -52,7 +52,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected JwtAuthenticationFilter jwtAuthenticationFilter() throws Exception{
 
         OrRequestMatcher notAllowMatcher = new OrRequestMatcher(
-                Arrays.asList("/auth/social/**", "/auth/refreshToken").stream().map(p -> new AntPathRequestMatcher(p)).collect(Collectors.toList()));
+                Arrays.asList("/auth/refreshToken", "/auth/social/**").stream().map(p -> new AntPathRequestMatcher(p)).collect(Collectors.toList()));
 
         JwtAuthenticationFilter filter = new JwtAuthenticationFilter(new RequestMatcher() {
             @Override

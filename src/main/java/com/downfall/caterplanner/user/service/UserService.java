@@ -3,7 +3,6 @@ package com.downfall.caterplanner.user.service;
 import com.downfall.caterplanner.application.exception.HttpRequestException;
 import com.downfall.caterplanner.common.entity.User;
 import com.downfall.caterplanner.common.repository.UserRepository;
-import com.downfall.caterplanner.purpose.model.request.PurposeResource;
 import com.downfall.caterplanner.purpose.model.response.ResponseGoal;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurpose;
 import com.downfall.caterplanner.user.model.response.ResponseUser;
@@ -29,8 +28,9 @@ public class UserService {
 
         return ResponseUser.builder()
                     .isOwner(userId.equals(id))
+                    .id(user.getId())
                     .name(user.getName())
-                    .joinDate(user.getCreateDate())
+                    .joinDate(user.getCreatedDate())
                     .profileUrl(user.getProfileUrl())
                     .backImageUrl(user.getBackImageUrl())
                     .purposeList(
@@ -42,6 +42,19 @@ public class UserService {
                                                     .stat(p.getStat().getValue())
                                                     .build()).collect(Collectors.toList()))
                     .build();
+    }
+
+    public List<ResponsePurpose> getUserPurposes(Long id){
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new HttpRequestException("존재하지 않는 사용자입니다.", HttpStatus.NOT_FOUND));
+
+        return user.getPurposeList().stream()
+                .map(p -> ResponsePurpose.builder()
+                        .name(p.getName())
+                        .id(p.getId())
+                        .photoUrl(p.getPhotoUrl())
+                        .stat(p.getStat().getValue())
+                        .build()).collect(Collectors.toList());
     }
 
     public ResponseUser update(Long id, UserResource resource){
@@ -61,7 +74,7 @@ public class UserService {
                     .build();
     }
 
-    public List<ResponsePurpose> getHasPurposes(Long myId) {
+    public List<ResponsePurpose> getActivePurposes(Long myId) {
         User user = userRepository.findById(myId).orElseThrow(() -> new HttpRequestException("존재하지 않는 사용자입니다.", HttpStatus.BAD_REQUEST));
 
         return user.getPurposeList().stream().map(
@@ -78,7 +91,6 @@ public class UserService {
                                                 .cycle(goal.getCycle())
                                                 .description(goal.getDescription())
                                                 .name(goal.getName())
-                                                .stat(goal.getStat().getValue())
                                                 .startDate(goal.getStartDate())
                                                 .endDate(goal.getEndDate())
                                                 .build()).collect(Collectors.toList()))

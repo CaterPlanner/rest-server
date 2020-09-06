@@ -10,6 +10,7 @@ import com.downfall.caterplanner.story.service.StoryCommentService;
 import com.downfall.caterplanner.story.service.StoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -87,7 +88,7 @@ public class StoryController {
             @RequestParam("page") Integer page){
         return ResponseHeader.builder()
                 .status(HttpStatus.OK)
-                .data(storyCommentService.readAll(payload.getId(), storyId, PageRequest.of(page, 15)))
+                .data(storyCommentService.readAll(payload.getId(), storyId, PageRequest.of(page, 15, Sort.by("createdDate").descending())))
                 .message("댓글이 로드되었습니다.")
                 .build();
     }
@@ -101,7 +102,7 @@ public class StoryController {
         return ResponseHeader.<PageResult<?>>builder()
                 .status(HttpStatus.OK)
                 .message("스토리(앞단)들 로드 완료")
-                .data(storyService.readAllForFront(payload.getId(), type, PageRequest.of(page, 10)))
+                .data(storyService.readAllForFront(payload.getId(), type, PageRequest.of(page, 10, Sort.by("createdDate").descending())))
                 .build();
     }
 

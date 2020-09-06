@@ -12,6 +12,7 @@ import com.downfall.caterplanner.purpose.service.PurposeService;
 import com.downfall.caterplanner.story.service.StoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -152,7 +153,7 @@ public class PurposeController {
             @PathVariable("id") Long purposeId,
             @RequestParam("page") Integer page){
         return ResponseHeader.<PageResult<?>>builder()
-                    .data(purposeCommentService.readAll(payload.getId(), purposeId, PageRequest.of(page, 15)))
+                    .data(purposeCommentService.readAll(payload.getId(), purposeId, PageRequest.of(page, 15, Sort.by("createdDate").descending())))
                     .message("댓글이 로드되었습니다.")
                     .status(HttpStatus.OK)
                     .build();
@@ -164,7 +165,7 @@ public class PurposeController {
                                   @RequestParam("prefix") String prefix,
                                   @RequestParam("page") Integer page){
         return ResponseHeader.<List<ResponsePurpose>>builder()
-                    .data(purposeService.readAll(payload.getId(), prefix, PageRequest.of(page, 10)))
+                    .data(purposeService.readAll(payload.getId(), prefix, PageRequest.of(page, 10, Sort.by("createdDate").descending())))
                     .status(HttpStatus.OK)
                     .message("목적들 로드 완료")
                     .build();

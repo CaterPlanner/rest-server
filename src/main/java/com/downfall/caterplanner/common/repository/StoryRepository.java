@@ -1,6 +1,7 @@
 package com.downfall.caterplanner.common.repository;
 
 import com.downfall.caterplanner.common.entity.Story;
+import com.downfall.caterplanner.common.entity.enumerate.Scope;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,10 +12,13 @@ import java.util.List;
 @Repository
 public interface StoryRepository extends JpaRepository<Story, Long> {
 
-    public List<Story> findTop10ByPurposeId(Long purposeId);
+    List<Story> findTop10ByPurposeId(Long purposeId);
 
-    public Page<Story> findByPurposeId(Long purposeId, Pageable pageable);
+    Page<Story> findByPurposeId(Long purposeId, Pageable pageable);
 
-    public Page<Story> findAllByType(Integer type, Pageable pageable);
+    Page<Story> findAllByType(Integer type, Pageable pageable);
 
+    Page<Story> findByPurposeIdAndDisclosureScope(Long id, Scope disclosureScope, Pageable pageable);
+
+    Page<Story> findAllByDisclosureScope(Scope disclosureScope, Pageable pageable);
 }

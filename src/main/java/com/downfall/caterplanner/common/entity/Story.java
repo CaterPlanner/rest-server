@@ -1,6 +1,8 @@
 package com.downfall.caterplanner.common.entity;
 
+import com.downfall.caterplanner.common.entity.converter.ScopeConverter;
 import com.downfall.caterplanner.common.entity.converter.StoryTypeConverter;
+import com.downfall.caterplanner.common.entity.enumerate.Scope;
 import com.downfall.caterplanner.common.entity.enumerate.StoryType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,6 +40,9 @@ public class Story extends BaseModel{
     @JoinColumn(name = "purpose_id")
     private Purpose purpose;
 
+    @Convert(converter = ScopeConverter.class)
+    @Column(name ="disclosure_scope",  nullable = false)
+    private Scope disclosureScope;
 
     //multiPleBag 문제
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval=true, mappedBy = "story")

@@ -34,6 +34,5 @@ public class GoalResource implements Serializable {
 
     private String lastBriefingDate;
 
-    private Integer stat;
 
 }

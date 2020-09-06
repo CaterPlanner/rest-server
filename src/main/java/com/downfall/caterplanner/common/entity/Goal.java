@@ -44,9 +44,7 @@ public class Goal extends BaseModel{
     @Column(nullable = false)
     private String cycle;
 
-    @Column(nullable = false)
-    @Convert(converter = StatConverter.class)
-    private Stat stat;
+
 
     @Column(name = "briefingCount", columnDefinition = "integer default 0")
     private int briefingCount;

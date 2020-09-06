@@ -45,7 +45,6 @@ public class AuthService {
     }
 
     public UserToken tokenRefresh(RequestRefreshToken requestRefreshToken){
-
         JwtPayload payload = jwtVerifier.decode(requestRefreshToken.getToken());
 
         User user = userRepository.findById(payload.getId()).orElseThrow(() -> new HttpRequestException("토큰의 사용자는 존재하지 않은 정보입니다.", HttpStatus.BAD_REQUEST));
@@ -69,6 +68,7 @@ public class AuthService {
         userRepository.save(user);
 
         Date nextExpried = createNextExpired();
+
 
         return UserToken.builder()
                 .token(jwtFactory.createToken(JwtPayload.builder()

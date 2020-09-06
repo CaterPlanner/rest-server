@@ -21,8 +21,5 @@ public class GoalAchieve {
     @NotNull(message = "마지막 브리핑 날짜는 필수입니다.")
     private String lastBriefingDate;
 
-    @Min(0)
-    @Max(3)
-    private int stat;
 
 }

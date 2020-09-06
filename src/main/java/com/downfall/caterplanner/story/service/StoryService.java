@@ -5,6 +5,7 @@ import com.downfall.caterplanner.common.entity.Purpose;
 import com.downfall.caterplanner.common.entity.Story;
 import com.downfall.caterplanner.common.entity.StoryLikes;
 import com.downfall.caterplanner.common.entity.User;
+import com.downfall.caterplanner.common.entity.enumerate.Scope;
 import com.downfall.caterplanner.common.entity.enumerate.StoryType;
 import com.downfall.caterplanner.common.model.network.PageResult;
 import com.downfall.caterplanner.common.repository.PurposeRepository;
@@ -17,13 +18,11 @@ import com.downfall.caterplanner.story.model.response.ResponseStoryComment;
 import com.downfall.caterplanner.user.model.response.ResponseUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.xml.ws.Response;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,9 +42,11 @@ public class StoryService {
     public ResponseStory create(Long userId, StoryResource resource) {
         Purpose purpose = purposeRepository.findById(resource.getPurposeId()).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.BAD_REQUEST));
 
+
         Story story = storyRepository.save(
                 Story.builder()
                         .purpose(purpose)
+                        .disclosureScope(Scope.findScope(resource.getDisclosureScope()))
                         .title(resource.getTitle())
                         .content(resource.getContent())
                         .type(StoryType.findStoryType(resource.getType()))
@@ -60,10 +61,15 @@ public class StoryService {
     public ResponseStory read(Long userId, Long id) {
         Story story = storyRepository.findById(id).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
 
+
         Purpose p = story.getPurpose();
         User user = p.getUser();
 
-        return ResponseStory.builder()
+        if(story.getDisclosureScope() == Scope.PRIVATE && !user.getId().equals(userId))
+            throw new HttpRequestException("비공개한 스토리입니다.", HttpStatus.UNAUTHORIZED);
+
+
+            return ResponseStory.builder()
                 .id(story.getId())
                 .title(story.getTitle())
                 .content(story.getContent())
@@ -80,10 +86,11 @@ public class StoryService {
                                         .name(c.getUser().getName())
                                         .profileUrl(c.getUser().getProfileUrl())
                                         .build())
-                                .createDate(c.getCreateDate())
+                                .isOwner(c.getUser().getId().equals(userId))
+                                .createDate(c.getCreatedDate())
                                 .build()
                         ).collect(Collectors.toList()))
-                .createDate(story.getCreateDate())
+                .createDate(story.getCreatedDate())
                 .author(
                         ResponseUser.builder()
                                 .id(user.getId())
@@ -120,20 +127,25 @@ public class StoryService {
         if(!story.getPurpose().getUser().getId().equals(userId) )
             throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
 
-        storyRepository.deleteById(userId);
+        storyRepository.delete(story);
     }
 
     public PageResult<?> readPurposeStories(Long userId, Long purposeId, Pageable pageable){
         Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.BAD_REQUEST));
 
-        Page<Story> pageResult = storyRepository.findByPurposeId(purpose.getId(), pageable);
+        boolean isOwner = purpose.getUser().getId().equals(userId);
+
+        Page<Story> pageResult = isOwner ?
+                storyRepository.findByPurposeId(purpose.getId(), pageable) :
+                storyRepository.findByPurposeIdAndDisclosureScope(purpose.getId(), purpose.getDisclosureScope(), pageable);
+
         return PageResult.of(pageable.getPageNumber() == pageResult.getTotalPages() - 1 ,
                     pageResult.get().map(s -> getResponseStoryByFront(userId, s)).collect(Collectors.toList()));
     }
 
 
     public PageResult<?> readAllForFront(Long userId, Integer type, Pageable pageable) {
-        Page<Story> result = type == null ? storyRepository.findAll(pageable) : storyRepository.findAllByType(type, pageable);
+        Page<Story> result = type == null ? storyRepository.findAllByDisclosureScope(Scope.PUBLIC, pageable) : storyRepository.findAllByType(type, pageable);
         Stream<Story> pageableResultStream = result.get();
 
         return PageResult.of(pageable.getPageNumber() == result.getTotalPages() - 1 , pageableResultStream.map(s -> getResponseStoryByFront(userId, s)).collect(Collectors.toList()));
@@ -160,7 +172,7 @@ public class StoryService {
                     .commentCount(s.getComments().size())
                     .likesCount(s.getLikes().size())
                     .type(s.getType().getValue())
-                    .createDate(s.getCreateDate())
+                    .createDate(s.getCreatedDate())
                     .canLikes(isCanLikes(s.getLikes(), userId))
                     .isOwner(author.getId().equals(userId))
                     .author(ResponseUser.builder()

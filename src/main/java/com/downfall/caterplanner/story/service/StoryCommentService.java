@@ -12,7 +12,6 @@ import com.downfall.caterplanner.story.model.response.ResponseStoryComment;
 import com.downfall.caterplanner.user.model.response.ResponseUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -91,7 +90,8 @@ public class StoryCommentService {
                                                     .name(user.getName())
                                                     .profileUrl(user.getProfileUrl())
                                                     .build())
-                                            .createDate(s.getCreateDate())
+                                            .isOwner(s.getUser().getId().equals(userId))
+                                            .createDate(s.getCreatedDate())
                                             .build();
                                 }
                         ).collect(Collectors.toList()));

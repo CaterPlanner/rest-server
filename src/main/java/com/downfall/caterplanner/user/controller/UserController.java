@@ -29,6 +29,14 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("{id}/purposes")
+    public ResponseEntity<?> readPurposes(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+        return ResponseHeader.<List<ResponsePurpose>>builder()
+                .data(userService.getUserPurposes(id))
+                .status(HttpStatus.OK)
+                .build();
+    }
+
     @GetMapping("myProfile")
     public ResponseEntity<?> readMyProfile(@AuthenticationPrincipal JwtPayload payload){
 
@@ -46,10 +54,10 @@ public class UserController {
                 .build();
     }
 
-    @GetMapping("myPurposes")
-    public ResponseEntity<?> myPurposes(@AuthenticationPrincipal JwtPayload payload){
+    @GetMapping("myActivePurposes")
+    public ResponseEntity<?> myActivePurposes(@AuthenticationPrincipal JwtPayload payload){
         return ResponseHeader.<List<ResponsePurpose>>builder()
-                    .data(userService.getHasPurposes(payload.getId()))
+                    .data(userService.getActivePurposes(payload.getId()))
                     .status(HttpStatus.OK)
                     .build();
     }

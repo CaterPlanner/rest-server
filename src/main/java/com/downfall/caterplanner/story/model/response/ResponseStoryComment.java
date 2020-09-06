@@ -24,4 +24,6 @@ public class ResponseStoryComment {
 
     private LocalDateTime createDate;
 
+    private boolean isOwner;
+
 }
