@@ -1,6 +1,7 @@
 package com.downfall.caterplanner.common.repository;
 
 import com.downfall.caterplanner.common.entity.Purpose;
+import com.downfall.caterplanner.common.entity.enumerate.Scope;
 import com.downfall.caterplanner.common.entity.enumerate.Stat;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,4 +17,5 @@ public interface PurposeRepository extends JpaRepository<Purpose, Long> {
 
     List<Purpose> findByUserIdAndStat(Long userId, Stat stat);
 
+    Page<Purpose> findByDisclosureScopeAndNameStartsWith(Scope disclosureScope, String name, Pageable pageable);
 }

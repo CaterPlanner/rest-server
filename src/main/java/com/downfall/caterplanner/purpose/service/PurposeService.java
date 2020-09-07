@@ -5,6 +5,7 @@ import com.downfall.caterplanner.application.exception.HttpRequestException;
 import com.downfall.caterplanner.common.entity.*;
 import com.downfall.caterplanner.common.entity.enumerate.Scope;
 import com.downfall.caterplanner.common.entity.enumerate.Stat;
+import com.downfall.caterplanner.common.model.network.PageResult;
 import com.downfall.caterplanner.common.repository.PurposeCommentRepository;
 import com.downfall.caterplanner.common.repository.PurposeRepository;
 import com.downfall.caterplanner.common.repository.StoryRepository;
@@ -20,6 +21,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Service
@@ -211,9 +215,15 @@ public class PurposeService {
         s3Util.delete(purpose.getPhotoUrl());
     }
 
-    public List<ResponsePurpose> readAll(Long userId, String prefix, Pageable pageable){
-        return purposeRepository.findByNameStartsWith(prefix, pageable).get()
-                .map(p -> ResponsePurpose.builder()
+    public PageResult<?> readAll(Long userId, String prefix, Pageable pageable){
+
+        Page<Purpose> result = purposeRepository.findByDisclosureScopeAndNameStartsWith(Scope.PUBLIC ,prefix == null ? "" : prefix , pageable);
+        Stream<Purpose> pageableResultStream = result.get();
+
+        return PageResult.of(pageable.getPageNumber() == result.getTotalPages() - 1,
+                pageableResultStream.map(p -> {
+                    User author = p.getUser();
+                    return ResponsePurpose.builder()
                                 .id(p.getId())
                                 .name(p.getName())
                                 .achieve(p.getAchieve())
@@ -221,15 +231,14 @@ public class PurposeService {
                                 .photoUrl(p.getPhotoUrl())
                                 .endDate(p.getEndDate())
                                 .stat(p.getStat().getValue())
-                                .canCheer(isCanCheer(p.getCheers(), userId))
-                                .cheersCount(p.getCheers().size())
-                                .author(ResponseUser.builder()
-                                        .id(p.getUser().getId())
-                                        .name(p.getUser().getName())
-                                        .profileUrl(p.getUser().getProfileUrl())
-                                        .build())
-                                .createDate(p.getCreatedDate())
-                                .build()).collect(Collectors.toList());
+                        .author(ResponseUser.builder()
+                                .id(author.getId())
+                                .name(author.getName())
+                                .profileUrl(author.getProfileUrl())
+                                .build())
+                                .build();
+                }).collect(Collectors.toList())
+                );
     }
 
 

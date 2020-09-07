@@ -162,10 +162,10 @@ public class PurposeController {
 
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal JwtPayload payload,
-                                  @RequestParam("prefix") String prefix,
+                                  @RequestParam(name = "prefix", required = false) String prefix,
                                   @RequestParam("page") Integer page){
-        return ResponseHeader.<List<ResponsePurpose>>builder()
-                    .data(purposeService.readAll(payload.getId(), prefix, PageRequest.of(page, 10, Sort.by("createdDate").descending())))
+        return ResponseHeader.builder()
+                    .data(purposeService.readAll(payload.getId(), prefix, PageRequest.of(page, 15, Sort.by("createdDate").descending())))
                     .status(HttpStatus.OK)
                     .message("목적들 로드 완료")
                     .build();
