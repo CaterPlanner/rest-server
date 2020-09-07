@@ -21,6 +21,3 @@ cloud:
       stack:
         auto: false
 
-server:
-  port: 5252
-
