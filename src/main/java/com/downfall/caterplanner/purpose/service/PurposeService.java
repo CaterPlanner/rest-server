@@ -59,9 +59,12 @@ public class PurposeService {
     private ObjectMapper mapper = new ObjectMapper();
 
 
+    private String makeFileName(Long id){
+        return "purpose/purposePhoto-" +id;
+    }
+
     private String getPhotoUrl(Long id, MultipartFile photo) throws IOException {
-        String newFileName = "purpose/purposePhoto-"+id;
-        return s3Util.upload(newFileName, photo);
+        return s3Util.upload(makeFileName(id), photo);
     }
 
     public ResponsePurpose create(Long userId, PurposeResource resource) throws IOException {
@@ -194,6 +197,14 @@ public class PurposeService {
         if(data.getModifiedGoalAchieve() != null) {
             data.getModifiedGoalAchieve().stream().forEach(
                     goalAchieve -> {
+
+                        Goal goal = purpose.getDetailPlans().get(goalAchieve.getId().intValue());
+                        LocalDate currentBriefingDate = LocalDate.parse(goalAchieve.getLastBriefingDate(), DateTimeFormatter.ISO_DATE);
+
+//                        if(!currentBriefingDate.equals(LocalDate.now()) || goal.getLastBriefingDate().equals(LocalDate.now()))
+//                            throw new HttpRequestException("잘못된 브리핑 데이터 값입니다.", HttpStatus.BAD_REQUEST);
+
+
                         purpose.getDetailPlans().get(goalAchieve.getId().intValue())
                                 .setBriefingCount(goalAchieve.getBriefingCount())
                                 .setLastBriefingDate(LocalDate.parse(goalAchieve.getLastBriefingDate(), DateTimeFormatter.ISO_DATE));
@@ -212,7 +223,7 @@ public class PurposeService {
             throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
 
         purposeRepository.deleteById(purposeId);
-        s3Util.delete(purpose.getPhotoUrl());
+        s3Util.delete(makeFileName(purposeId));
     }
 
     public PageResult<?> readAll(Long userId, String prefix, Pageable pageable){

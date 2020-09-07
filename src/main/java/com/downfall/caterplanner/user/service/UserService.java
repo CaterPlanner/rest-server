@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -83,7 +84,7 @@ public class UserService {
         User user = userRepository.findById(myId).orElseThrow(() -> new HttpRequestException("존재하지 않는 사용자입니다.", HttpStatus.BAD_REQUEST));
 
 
-        return purposeRepository.findByUserIdAndStat(user.getId(), Stat.PROCEED).stream().map(
+        return purposeRepository.findByUserIdAndStatIn(user.getId(), Arrays.asList(Stat.PROCEED, Stat.WAIT)).stream().map(
                 p -> ResponsePurpose.defaultBuilder(p)
                         .isOwner(true)
                         .achieve(p.getAchieve())
