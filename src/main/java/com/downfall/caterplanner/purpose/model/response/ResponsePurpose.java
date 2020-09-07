@@ -40,13 +40,15 @@ public class ResponsePurpose {
 
     private List<ResponseGoal> detailPlans;
 
-    private Integer cheers;
+    private Integer cheersCount;
 
     private Boolean canCheer;
 
     private LocalDateTime createDate;
 
     private List<ResponsePurposeComment> comments;
+
+    private Integer commentCount;
 
     private List<ResponseStory> storyTags;
 

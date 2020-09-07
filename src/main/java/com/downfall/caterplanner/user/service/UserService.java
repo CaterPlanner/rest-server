@@ -2,6 +2,8 @@ package com.downfall.caterplanner.user.service;
 
 import com.downfall.caterplanner.application.exception.HttpRequestException;
 import com.downfall.caterplanner.common.entity.User;
+import com.downfall.caterplanner.common.entity.enumerate.Stat;
+import com.downfall.caterplanner.common.repository.PurposeRepository;
 import com.downfall.caterplanner.common.repository.UserRepository;
 import com.downfall.caterplanner.purpose.model.response.ResponseGoal;
 import com.downfall.caterplanner.purpose.model.response.ResponsePurpose;
@@ -20,11 +22,14 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PurposeRepository purposeRepository;
 
     public ResponseUser read(Long userId, Long id){
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new HttpRequestException("존재하지 않는 사용자입니다.", HttpStatus.NOT_FOUND));
+
 
         return ResponseUser.builder()
                     .isOwner(userId.equals(id))
@@ -77,7 +82,8 @@ public class UserService {
     public List<ResponsePurpose> getActivePurposes(Long myId) {
         User user = userRepository.findById(myId).orElseThrow(() -> new HttpRequestException("존재하지 않는 사용자입니다.", HttpStatus.BAD_REQUEST));
 
-        return user.getPurposeList().stream().map(
+
+        return purposeRepository.findByUserIdAndStat(user.getId(), Stat.PROCEED).stream().map(
                 p -> ResponsePurpose.defaultBuilder(p)
                         .isOwner(true)
                         .achieve(p.getAchieve())
