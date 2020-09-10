@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponsePurposeComment {
 
-    private Long commentId;
+    private Long id;
 
     private ResponseUser user;
 

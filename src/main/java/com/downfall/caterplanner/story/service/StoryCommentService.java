@@ -83,7 +83,7 @@ public class StoryCommentService {
                                     User user = s.getUser();
 
                                     return ResponseStoryComment.builder()
-                                            .commentId(s.getId())
+                                            .id(s.getId())
                                             .content(s.getContent())
                                             .user(ResponseUser.builder()
                                                     .id(user.getId())

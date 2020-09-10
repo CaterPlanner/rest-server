@@ -73,7 +73,7 @@ public class PurposeCommentService {
 
                             User user = p.getUser();
                             return ResponseStoryComment.builder()
-                                .commentId(p.getId())
+                                .id(p.getId())
                                 .content(p.getContent())
                                 .user(ResponseUser.builder()
                                         .id(user.getId())

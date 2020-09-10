@@ -14,9 +14,7 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponseStoryComment {
 
-    private Long commentId;
-
-    private Long userId;
+    private Long id;
 
     private ResponseUser user;
 

@@ -79,7 +79,7 @@ public class StoryService {
                 .isOwner(user.getId().equals(userId))
                 .comments(storyCommentRepository.findTop10ByStoryId(story.getId()).stream()
                         .map(c -> ResponseStoryComment.builder()
-                                .commentId(c.getId())
+                                .id(c.getId())
                                 .content(c.getContent())
                                 .user(ResponseUser.builder()
                                         .id(c.getUser().getId())
