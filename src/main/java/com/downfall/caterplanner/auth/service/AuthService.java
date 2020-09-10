@@ -27,7 +27,7 @@ public class AuthService {
     private JwtVerifier jwtVerifier;
 
 
-    private final long EXPIRED_TIME = 3600 * 60 * 60 * 2;
+    private final long EXPIRED_TIME = 1000 * 60 * 60 * 2;
 
     public UserToken signIn(String email, String name, String pictureUrl, String fcmToken) {
         User user = userRepository.findByEmail(email).orElseGet(() -> {
