@@ -27,7 +27,9 @@ public class AuthService {
     private JwtVerifier jwtVerifier;
 
 
-    private final long EXPIRED_TIME = 1000 * 60 * 60 * 2;
+    private final long ACCESS_TOKEN_EXPIRED_TIME = 1000 * 60 * 60 * 2;
+    private final long REFRESH_TOKEN_EXPIRED_TIME = 1000 * 60 * 60 * 24 * 7;
+
 
     public UserToken signIn(String email, String name, String pictureUrl, String fcmToken) {
         User user = userRepository.findByEmail(email).orElseGet(() -> {
@@ -45,7 +47,7 @@ public class AuthService {
     }
 
     public UserToken tokenRefresh(RequestRefreshToken requestRefreshToken){
-        JwtPayload payload = jwtVerifier.decode(requestRefreshToken.getToken());
+        JwtPayload payload = jwtVerifier.decode(requestRefreshToken.getRefreshToken());
 
         User user = userRepository.findById(payload.getId()).orElseThrow(() -> new HttpRequestException("토큰의 사용자는 존재하지 않은 정보입니다.", HttpStatus.BAD_REQUEST));
 
@@ -62,35 +64,31 @@ public class AuthService {
     }
 
     private UserToken getUserToken(User user) {
-        String refreshToken = createRefreshToken(10);
+
+        Date nextAccessNextExpired = getNextExpiredTime(ACCESS_TOKEN_EXPIRED_TIME);
+
+        String accessToken = jwtFactory.createToken(
+                JwtPayload.builder().id(user.getId()).expired(nextAccessNextExpired).build()
+        );
+
+        String refreshToken = jwtFactory.createToken(
+                JwtPayload.builder().id(user.getId()).expired(getNextExpiredTime(REFRESH_TOKEN_EXPIRED_TIME)).build()
+        );
+
         user.setRefreshToken(refreshToken);
 
         userRepository.save(user);
 
-        Date nextExpried = createNextExpired();
-
 
         return UserToken.builder()
-                .token(jwtFactory.createToken(JwtPayload.builder()
-                        .id(user.getId())
-                        .expired(nextExpried).build()))
-                .refreshToken(user.getRefreshToken())
-                .expired(nextExpried.getTime())
+                .token(accessToken)
+                .refreshToken(refreshToken)
+                .expired(nextAccessNextExpired.getTime())
                 .build();
     }
 
-    private String createRefreshToken(int length){
-        final String token = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/!#";
-        char[] text = new char[length];
-
-        for(int i = 0; i < text.length; i++){
-            text[i] = token.charAt((int) (Math.random() * token.length()));
-        }
-        return new String(text);
-    }
-
-    private Date createNextExpired(){
-        return new Date(new Date().getTime() + EXPIRED_TIME);
+    private Date getNextExpiredTime(long time){
+        return new Date(new Date().getTime() + time);
     }
 
 }

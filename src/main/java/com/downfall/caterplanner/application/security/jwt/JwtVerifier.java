@@ -29,6 +29,7 @@ public class JwtVerifier {
         DecodedJWT jwt = null;
 
         com.auth0.jwt.JWTVerifier verifier = JWT.require(algorithm).build();
+        
         jwt = verifier.verify(token);
 
         return Optional.ofNullable(jwt);
