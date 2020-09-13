@@ -201,7 +201,8 @@ public class PurposeService {
                         Goal goal = purpose.getDetailPlans().get(goalAchieve.getId().intValue());
                         LocalDate currentBriefingDate = LocalDate.parse(goalAchieve.getLastBriefingDate(), DateTimeFormatter.ISO_DATE);
 
-                        if(!currentBriefingDate.equals(LocalDate.now()) || goal.getLastBriefingDate().equals(LocalDate.now()))
+                        if(!currentBriefingDate.equals(LocalDate.now()) || (goal.getLastBriefingDate() != null && goal.getLastBriefingDate().equals(LocalDate.now())))
+
                             throw new HttpRequestException("잘못된 브리핑 데이터 값입니다.", HttpStatus.BAD_REQUEST);
 
 
