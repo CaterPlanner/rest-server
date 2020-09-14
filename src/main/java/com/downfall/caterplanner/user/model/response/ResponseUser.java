@@ -29,6 +29,10 @@ public class ResponseUser {
 
     private List<ResponsePurpose> purposeList;
 
+    private Integer successCount;
+
+    private Integer successPer;
+
     private Boolean isOwner;
 
 }

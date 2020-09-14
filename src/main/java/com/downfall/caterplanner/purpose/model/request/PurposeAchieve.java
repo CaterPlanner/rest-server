@@ -15,11 +15,11 @@ public class PurposeAchieve {
 
     @Min(0)
     @Max(100)
-    private int achieve;
+    private Integer achieve;
 
     @Min(0)
     @Max(3)
-    private int stat;
+    private Integer stat;
 
     @Valid
     private List<GoalAchieve> modifiedGoalAchieve;

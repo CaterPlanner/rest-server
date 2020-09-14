@@ -1,6 +1,7 @@
 package com.downfall.caterplanner.user.service;
 
 import com.downfall.caterplanner.application.exception.HttpRequestException;
+import com.downfall.caterplanner.common.entity.Purpose;
 import com.downfall.caterplanner.common.entity.User;
 import com.downfall.caterplanner.common.entity.enumerate.Stat;
 import com.downfall.caterplanner.common.repository.PurposeRepository;
@@ -31,6 +32,16 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new HttpRequestException("존재하지 않는 사용자입니다.", HttpStatus.NOT_FOUND));
 
+        List<Purpose> purposeList = user.getPurposeList();
+
+        int successCount = 0;
+
+        for(Purpose purpose : purposeList){
+            if(purpose.getStat() == Stat.SUCCESS)
+                successCount++;
+        }
+
+        int successPer = successCount == 0 ? 0 : Math.round(((float)successCount / purposeList.size()) * 100);
 
         return ResponseUser.builder()
                     .isOwner(userId.equals(id))
@@ -39,8 +50,10 @@ public class UserService {
                     .joinDate(user.getCreatedDate())
                     .profileUrl(user.getProfileUrl())
                     .backImageUrl(user.getBackImageUrl())
+                    .successCount(successCount)
+                    .successPer(successPer)
                     .purposeList(
-                            user.getPurposeList().stream()
+                            purposeList.subList(0, purposeList.size() < 5 ? purposeList.size() : 5).stream()
                                     .map(p -> ResponsePurpose.builder()
                                                     .name(p.getName())
                                                     .id(p.getId())

@@ -122,6 +122,7 @@ public class PurposeService {
                 .achieve(purpose.getAchieve())
                 .cheersCount(purpose.getCheers().size())
                 .commentCount(purpose.getComments().size())
+                .createDate(purpose.getCreatedDate())
                 .canCheer(isCanCheer(purpose.getCheers(), userId))
                 .storyTags(storiesHeader)
 //                .comments(purpose.getComments().stream()
@@ -190,9 +191,11 @@ public class PurposeService {
     public void update(Long userId, Long purposeId, PurposeAchieve data) {
         Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
 
-        purpose
-                .setAchieve(data.getAchieve())
-                .setStat(Stat.findStat(data.getStat()));
+        if(data.getAchieve() != null)
+            purpose.setAchieve(data.getAchieve());
+
+        if(data.getStat() != null)
+            purpose.setStat(Stat.findStat(data.getStat()));
 
         if(data.getModifiedGoalAchieve() != null) {
             data.getModifiedGoalAchieve().stream().forEach(
