@@ -103,6 +103,7 @@ public class StoryService {
                                 .name(p.getName())
                                 .achieve(p.getAchieve())
                                 .photoUrl(p.getPhotoUrl())
+                                .stat(p.getStat().getValue())
                                 .build()
                 ).build();
     }

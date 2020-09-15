@@ -53,7 +53,7 @@ public class UserService {
                     .successCount(successCount)
                     .successPer(successPer)
                     .purposeList(
-                            purposeList.subList(0, purposeList.size() < 5 ? purposeList.size() : 5).stream()
+                            purposeList.stream().filter(p -> p.getStat() == Stat.PROCEED)
                                     .map(p -> ResponsePurpose.builder()
                                                     .name(p.getName())
                                                     .id(p.getId())
