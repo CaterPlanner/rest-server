@@ -277,6 +277,7 @@ public class PurposeService {
     private Purpose changePurpose(Purpose purpose, PurposeResource resource) throws IOException {
 
         purpose.setName(resource.getName())
+                .setDescription(resource.getDescription())
                .setStartDate(LocalDate.parse(resource.getStartDate(), DateTimeFormatter.ISO_DATE))
                .setEndDate(LocalDate.parse(resource.getEndDate(), DateTimeFormatter.ISO_DATE))
                .setDisclosureScope(Scope.findScope(resource.getDisclosureScope()))
