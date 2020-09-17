@@ -70,12 +70,16 @@ public class PurposeService {
     public ResponsePurpose create(Long userId, PurposeResource resource) throws IOException {
         User author = userRepository.findById(userId).orElseThrow(() -> new HttpRequestException("존재하지 않는 유저입니다.", HttpStatus.BAD_REQUEST));
 
-        System.out.println(resource);
+        LocalDate startDate = LocalDate.parse(resource.getStartDate(), DateTimeFormatter.ISO_DATE);
+
+        if(!startDate.equals(LocalDate.now()))
+            throw new HttpRequestException("올바르지 않은 데이터입니다.", HttpStatus.BAD_REQUEST);
+
         Purpose purpose = purposeRepository.save(
                 Purpose.builder()
                     .name(resource.getName())
                     .description(resource.getDescription())
-                    .startDate( LocalDate.parse(resource.getStartDate(), DateTimeFormatter.ISO_DATE))
+                    .startDate( startDate)
                     .endDate( LocalDate.parse(resource.getEndDate(), DateTimeFormatter.ISO_DATE))
                     .disclosureScope(Scope.findScope(resource.getDisclosureScope()))
                     .stat(Stat.findStat(resource.getStat()))
@@ -162,7 +166,9 @@ public class PurposeService {
 
         purpose.getDetailPlans().clear();
         purpose.getDetailPlans().addAll(goalList);
-        purpose.setAchieve(0);
+
+        if(resource.getAchieve() != null)
+            purpose.setAchieve(resource.getAchieve());
 
         Purpose updatedPurpose = purposeRepository.save(purpose);
 

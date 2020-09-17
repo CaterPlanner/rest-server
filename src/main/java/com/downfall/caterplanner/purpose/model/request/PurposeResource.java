@@ -39,6 +39,8 @@ public class PurposeResource implements Serializable {
     @NotNull(message = "상태값은 필수입니다.")
     private int stat;
 
+    private Integer achieve;
+
     private String detailPlans;
 
 }
