@@ -1,9 +1,12 @@
 package com.dawnfall.caterplanner.story.service;
 
 import com.dawnfall.caterplanner.application.exception.HttpRequestException;
+import com.dawnfall.caterplanner.common.ErrorCode;
 import com.dawnfall.caterplanner.common.entity.Story;
 import com.dawnfall.caterplanner.common.entity.StoryComment;
 import com.dawnfall.caterplanner.common.entity.User;
+import com.dawnfall.caterplanner.common.model.network.ErrorInfo;
+import com.dawnfall.caterplanner.common.model.network.Response;
 import com.dawnfall.caterplanner.common.repository.StoryCommentRepository;
 import com.dawnfall.caterplanner.common.repository.StoryRepository;
 import com.dawnfall.caterplanner.common.model.network.PageResult;
@@ -32,9 +35,9 @@ public class StoryCommentService {
     //아무일도 일어나지 않는다.
 
     @Transactional
-    public void create(Long userId, StoryCommentResource resource) {
+    public Response create(Long userId, StoryCommentResource resource) {
         Story story = storyRepository.findById(resource.getStoryId()).orElseThrow(
-                () -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND)
+                () -> new HttpRequestException("스토리 댓글 생성 실패", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 스토리입니다."))
         );
 
         StoryComment comment =  storyCommentRepository.save(
@@ -45,38 +48,43 @@ public class StoryCommentService {
                         .build()
         );
 
+        return new Response("스토리 댓글 생성 성공");
     }
 
 
 
     @Transactional
-    public void delete(Long userId, Long commentId) {
-        StoryComment comment = storyCommentRepository.findById(commentId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public Response delete(Long userId, Long commentId) {
+        StoryComment comment = storyCommentRepository.findById(commentId).orElseThrow(
+                () -> new HttpRequestException("스토리 댓글 삭제 실패", new ErrorInfo(ErrorCode.NOT_EXISTED, "존재하지 않는 스토리 댓글 입니다.")));
 
         if(!comment.getUser().getId().equals(userId))
-            throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("스토리 댓글 삭제 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED,"권한이 없습니다."));
 
         storyCommentRepository.deleteById(commentId);
-
+        return new Response("스토리 댓글 삭제 성공");
     }
 
     @Transactional
-    public void update(Long userId, Long commentId, StoryCommentResource resource) {
-        StoryComment comment = storyCommentRepository.findById(commentId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public Response update(Long userId, Long commentId, StoryCommentResource resource) {
+        StoryComment comment = storyCommentRepository.findById(commentId).orElseThrow(
+                () -> new HttpRequestException("스토리 댓글 수정 실패", new ErrorInfo(ErrorCode.NOT_EXISTED, "존재하지 않는 목적입니다.")));
 
         if(!comment.getUser().getId().equals(userId))
-            throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("스토리 댓글 수정 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED,"권한이 없습니다."));
 
         comment
                 .setContent(resource.getContent());
 
+        return new Response("스토리 댓글 수정 성공");
     }
 
-    public PageResult<?> readAll(Long userId, Long storyId, Pageable pageable) {
-        storyRepository.findById(storyId).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
+    public Response readAll(Long userId, Long storyId, Pageable pageable) {
+        storyRepository.findById(storyId).orElseThrow(
+                () -> new HttpRequestException("스토리 댓글 전체 로드 실패", new ErrorInfo(ErrorCode.NOT_EXISTED, "존재하지 않는 스토리입니다.")));
         Page<StoryComment> pageComment = storyCommentRepository.findByStoryId(storyId, pageable);
 
-        return PageResult.of(pageable.getPageNumber() >= pageComment.getTotalPages() - 1,
+        return new Response("스토리 댓글 전체 로드 성공" , PageResult.of(pageable.getPageNumber() >= pageComment.getTotalPages() - 1,
                 pageComment.get()
                         .map(s -> {
 
@@ -94,6 +102,6 @@ public class StoryCommentService {
                                             .createDate(s.getCreatedDate())
                                             .build();
                                 }
-                        ).collect(Collectors.toList()));
+                        ).collect(Collectors.toList())));
     }
 }

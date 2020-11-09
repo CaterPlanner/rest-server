@@ -6,6 +6,8 @@ import com.dawnfall.caterplanner.application.security.jwt.JwtPayload;
 import com.dawnfall.caterplanner.application.security.jwt.JwtVerifier;
 import com.dawnfall.caterplanner.application.security.token.PostJwtAuthenticationToken;
 import com.dawnfall.caterplanner.application.security.token.PreJwtAuthenticationToken;
+import com.dawnfall.caterplanner.common.ErrorCode;
+import com.dawnfall.caterplanner.common.model.network.ErrorInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -27,10 +29,10 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
             return new PostJwtAuthenticationToken(jwtPayload);
         }catch (TokenExpiredException e){
             e.printStackTrace();
-            throw new IllegalJwtException("기간이 지난 토큰입니다.");
+            throw new IllegalJwtException(new ErrorInfo(ErrorCode.EXPIRE_TOKEN,"기간이 지난 토큰입니다."));
         }catch (Exception e){
             e.printStackTrace();
-            throw  new IllegalJwtException("유효하지 않은 토큰입니다.");
+            throw  new IllegalJwtException(new ErrorInfo(ErrorCode.NOT_VALID_TOKEN, "유효하지 않은 토큰입니다."));
         }
     }
 

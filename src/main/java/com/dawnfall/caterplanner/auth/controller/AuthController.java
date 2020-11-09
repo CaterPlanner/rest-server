@@ -3,18 +3,17 @@ package com.dawnfall.caterplanner.auth.controller;
 
 import com.dawnfall.caterplanner.application.exception.HttpRequestException;
 import com.dawnfall.caterplanner.application.security.jwt.JwtPayload;
-import com.dawnfall.caterplanner.common.model.network.ResponseHeader;
+import com.dawnfall.caterplanner.common.ErrorCode;
+import com.dawnfall.caterplanner.common.model.network.ErrorInfo;
+import com.dawnfall.caterplanner.common.model.network.Response;
 import com.dawnfall.caterplanner.auth.model.RequestAuthToken;
 import com.dawnfall.caterplanner.auth.model.RequestRefreshToken;
-import com.dawnfall.caterplanner.auth.model.UserToken;
 import com.dawnfall.caterplanner.auth.service.AuthService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,8 +30,7 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("social/google")
-    public ResponseEntity<?> authGoogle(@RequestBody @Valid RequestAuthToken resource){
-
+    public Response authGoogle(@RequestBody @Valid RequestAuthToken resource){
 
         try {
             final String CLIENT_ID = "824557913187-k8onrhv3nt0q5cbfvc2hf6gamspjseo1.apps.googleusercontent.com";
@@ -50,37 +48,23 @@ public class AuthController {
             String name = (String) payload.get("name");
             String pictureUrl = (String) payload.get("picture");
 
-
-            return ResponseHeader.<UserToken>builder()
-                    .data(authService.signIn(email, name, pictureUrl, resource.getFcmToken()))
-                    .message("구글 토큰 인증 완료")
-                    .status(HttpStatus.CREATED)
-                    .build();
+            return authService.signIn(email, name, pictureUrl, resource.getFcmToken());
 
         } catch (IOException | GeneralSecurityException e) {
             e.printStackTrace();
-            throw new HttpRequestException("구글 토큰 인증에 실패하였습니다." , HttpStatus.BAD_REQUEST);
+            throw new HttpRequestException("구글 로그인 실패", new ErrorInfo(ErrorCode.FAILED_SOCIAL_LOGIN, "유효하지 않은 구글 토큰 입니다."));
         }
 
     }
 
     @PostMapping("refreshToken")
-    public ResponseEntity<?> refreshToken(@RequestBody @Valid RequestRefreshToken resource){
-        System.out.println("refreshToken 요청 들어옴");
-        return ResponseHeader.<UserToken>builder()
-                .data(authService.tokenRefresh(resource))
-                .status(HttpStatus.CREATED)
-                .message("token refresh 성공")
-                .build();
+    public Response refreshToken(@RequestBody @Valid RequestRefreshToken resource){
+        return authService.tokenRefresh(resource);
     }
 
     @GetMapping("logout")
-    public ResponseEntity<?> logout(@AuthenticationPrincipal JwtPayload payload){
-        authService.logout(payload.getId());
-        return ResponseHeader.builder()
-                    .status(HttpStatus.OK)
-                    .message("로그아웃 성공")
-                    .build();
+    public Response logout(@AuthenticationPrincipal JwtPayload payload){
+        return authService.logout(payload.getId());
     }
 
 

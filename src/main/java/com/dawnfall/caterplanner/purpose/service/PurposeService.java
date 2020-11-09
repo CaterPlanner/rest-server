@@ -2,14 +2,13 @@ package com.dawnfall.caterplanner.purpose.service;
 
 import com.dawnfall.caterplanner.application.exception.HttpRequestException;
 import com.dawnfall.caterplanner.application.aws.S3Util;
-import com.dawnfall.caterplanner.common.entity.Goal;
-import com.dawnfall.caterplanner.common.entity.Purpose;
-import com.dawnfall.caterplanner.common.entity.PurposeCheer;
-import com.dawnfall.caterplanner.common.entity.User;
+import com.dawnfall.caterplanner.common.ErrorCode;
 import com.dawnfall.caterplanner.common.entity.*;
 import com.dawnfall.caterplanner.common.entity.enumerate.Scope;
 import com.dawnfall.caterplanner.common.entity.enumerate.Stat;
+import com.dawnfall.caterplanner.common.model.network.ErrorInfo;
 import com.dawnfall.caterplanner.common.model.network.PageResult;
+import com.dawnfall.caterplanner.common.model.network.Response;
 import com.dawnfall.caterplanner.common.repository.PurposeCommentRepository;
 import com.dawnfall.caterplanner.common.repository.PurposeRepository;
 import com.dawnfall.caterplanner.common.repository.StoryRepository;
@@ -70,13 +69,15 @@ public class PurposeService {
         return s3Util.upload(makeFileName(id), photo);
     }
 
-    public ResponsePurpose create(Long userId, PurposeResource resource) throws IOException {
-        User author = userRepository.findById(userId).orElseThrow(() -> new HttpRequestException("존재하지 않는 유저입니다.", HttpStatus.BAD_REQUEST));
+    public Response create(Long userId, PurposeResource resource) throws IOException{
+
+        User author = userRepository.findById(userId).orElseThrow(
+                () -> new HttpRequestException("목적 생성 실패", new ErrorInfo(ErrorCode.NOT_EXISTED, "존재하지 않는 유저입니다.")));
 
         LocalDate startDate = LocalDate.parse(resource.getStartDate(), DateTimeFormatter.ISO_DATE);
 
         if(!startDate.equals(LocalDate.now()))
-            throw new HttpRequestException("올바르지 않은 데이터입니다.", HttpStatus.BAD_REQUEST);
+            throw new HttpRequestException("목적 생성 실패", new ErrorInfo(ErrorCode.ILLEGAL_DATE_DATA, "생성 시 시작날짜는 현재 날짜와 같아야 합니다"));
 
         Purpose purpose = purposeRepository.save(
                 Purpose.builder()
@@ -98,20 +99,21 @@ public class PurposeService {
 
         purpose.setPhotoUrl(photoUrl);
 
-
-        return ResponsePurpose.builder()
+        return new Response("목적 생성 성공",
+                ResponsePurpose.builder()
                         .id(purpose.getId())
                         .photoUrl(purpose.getPhotoUrl())
-                        .build();
+                        .build());
     }
 
-    public ResponsePurpose read(Long userId, Long purposeId){
-        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public Response read(Long userId, Long purposeId){
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(
+                () -> new HttpRequestException("목적 로드 실패", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 목적입니다.")));
 
         User author = purpose.getUser();
 
         if(purpose.getDisclosureScope() == Scope.PRIVATE && !author.getId().equals(userId))
-            throw new HttpRequestException("비공개한 목적입니다.", HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("목적 로드 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED,"비공개한 목적입니다."));
 
         //스토리는 최대 10개까지만 보여줌
         List<ResponseStory> storiesHeader = storyRepository.findTop10ByPurposeId(purpose.getId()).stream()
@@ -124,7 +126,7 @@ public class PurposeService {
                             .build()
                 ).collect(Collectors.toList());
 
-        return ResponsePurpose.defaultBuilder(purpose)
+        return new Response("목적 로드 성공", ResponsePurpose.defaultBuilder(purpose)
                 .isOwner(userId.equals(purpose.getUser().getId()))
                 .achieve(purpose.getAchieve())
                 .cheersCount(purpose.getCheers().size())
@@ -132,20 +134,6 @@ public class PurposeService {
                 .createDate(purpose.getCreatedDate())
                 .canCheer(isCanCheer(purpose.getCheers(), userId))
                 .storyTags(storiesHeader)
-//                .comments(purpose.getComments().stream()
-//                        .map(c -> ResponsePurposeComment.builder()
-//                                    .commentId(c.getId())
-//                                    .content(c.getContent())
-//                                    .createDate(c.getCreateDate())
-//                                    .user(ResponseUser.builder()
-//                                            .id(c.getUser().getId())
-//                                            .name(c.getUser().getName())
-//                                            .profileUrl(c.getUser().getProfileUrl())
-//                                            .build())
-//                                    .isOwner(c.getUser().getId().equals(userId))
-//                                    .build()
-//                        ).collect(Collectors.toList())
-//                )
                 .author(ResponseUser.builder()
                             .id(author.getId())
                             .name(author.getName())
@@ -153,15 +141,15 @@ public class PurposeService {
                             .build())
                 .detailPlans(purpose.getDetailPlans().stream()
                         .map(g -> getGoalBuild(g)).collect(Collectors.toList()))
-                .build();
+                .build());
     }
 
-    public ResponsePurpose modifyAll(Long userId, Long purposeId, PurposeResource resource) throws IOException {
-
-        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public Response modifyAll(Long userId, Long purposeId, PurposeResource resource) throws IOException {
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(
+                () -> new HttpRequestException("목적 변경 실패", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 목적입니다.")));
 
         if(!userId.equals(purpose.getUser().getId()))
-            throw new HttpRequestException("권한이 없습니다" , HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("목적 변경 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED, "소유자가 아닙니다."));
 
         changePurpose(purpose, resource);
 
@@ -176,29 +164,32 @@ public class PurposeService {
         Purpose updatedPurpose = purposeRepository.save(purpose);
 
         //변경된 정보만 리턴
-        return ResponsePurpose.builder()
+        return new Response("목적 변경 성공", ResponsePurpose.builder()
                 .photoUrl(purpose.getPhotoUrl())
-                .build();
+                .build());
     }
 
-    public ResponsePurpose modify(Long userId, Long purposeId, PurposeResource resource) throws IOException {
-        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public Response modify(Long userId, Long purposeId, PurposeResource resource) throws IOException {
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(
+                () -> new HttpRequestException("목적 일부 변경 실패", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 목적입니다.")));
 
         if(!userId.equals(purpose.getUser().getId()))
-            throw new HttpRequestException("권한이 없습니다" , HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("목적 일부 변경 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED, "소유자가 아닙니다."));
 
         changePurpose(purpose, resource);
 
         Purpose updatedPurpose =  purposeRepository.save(purpose);
 
         //변경된 정보만 리턴
-        return ResponsePurpose.builder()
+        return new Response("목적 일부 변경 성공",
+                ResponsePurpose.builder()
                 .photoUrl(purpose.getPhotoUrl())
-                .build();
+                .build());
     }
 
-    public void update(Long userId, Long purposeId, PurposeAchieve data) {
-        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public Response update(Long userId, Long purposeId, PurposeAchieve data) {
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(
+                () -> new HttpRequestException("목적 달성치 변경 실패", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 목적입니다.")));
 
         if(data.getAchieve() != null)
             purpose.setAchieve(data.getAchieve());
@@ -213,9 +204,12 @@ public class PurposeService {
                         Goal goal = purpose.getDetailPlans().get(goalAchieve.getId().intValue());
                         LocalDate currentBriefingDate = LocalDate.parse(goalAchieve.getLastBriefingDate(), DateTimeFormatter.ISO_DATE);
 
-                        if(!currentBriefingDate.equals(LocalDate.now()) || (goal.getLastBriefingDate() != null && goal.getLastBriefingDate().equals(LocalDate.now())))
 
-                            throw new HttpRequestException("잘못된 브리핑 데이터 값입니다.", HttpStatus.BAD_REQUEST);
+                        if(!currentBriefingDate.equals(LocalDate.now()))
+                            throw new HttpRequestException("목적 달성치 변경 실패", new ErrorInfo(ErrorCode.ILLEGAL_DATE_DATA,"목표 수행 기록 날짜가 현재 시각과 같아야 합니다."));
+
+                        if(goal.getLastBriefingDate() != null && goal.getLastBriefingDate().equals(LocalDate.now()))
+                            throw new HttpRequestException("목적 달성치 변경 실패", new ErrorInfo(ErrorCode.ILLEGAL_DATE_DATA,"오늘 이미 기록하였습니다."));
 
 
                         purpose.getDetailPlans().get(goalAchieve.getId().intValue())
@@ -226,25 +220,76 @@ public class PurposeService {
         }
 
         Purpose purposed = purposeRepository.save(purpose);
-        System.out.println(purposed.getAchieve());
+
+        return new Response("목적 달성치 변경 성공");
     }
 
-    public void delete(Long userId, Long purposeId) {
-        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.NOT_FOUND));
+    public Response delete(Long userId, Long purposeId) {
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(
+                () -> new HttpRequestException("목적 삭제 실패", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 목적입니다.")));
 
         if(!purpose.getUser().getId().equals(userId))
-            throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("목적 삭제 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED, "소유자가 아닙니다."));
 
         purposeRepository.deleteById(purposeId);
         s3Util.delete(makeFileName(purposeId));
+
+        return new Response("목적 삭제 성공");
     }
 
-    public PageResult<?> readAll(Long userId, String prefix, Pageable pageable){
+    public Response readPurposeStories(Long userId, Long purposeId, Pageable pageable){
+        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(
+                () -> new HttpRequestException("목적 스토리들 로드 실패", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 목적입니다.")));
+
+        boolean isOwner = purpose.getUser().getId().equals(userId);
+
+        Page<Story> pageResult = isOwner ?
+                storyRepository.findByPurposeId(purpose.getId(), pageable) :
+                storyRepository.findByPurposeIdAndDisclosureScope(purpose.getId(), purpose.getDisclosureScope(), pageable);
+
+
+        return new Response("목적 스토리들 로드 성공" ,PageResult.of(pageable.getPageNumber() == pageResult.getTotalPages() - 1 ,
+                pageResult.get().map(s -> {
+                    Purpose purpose1 = s.getPurpose();
+                    User author = purpose1.getUser();
+
+                    boolean isCanLikes = true;
+
+                    for(StoryLikes storyLikes : s.getLikes()){
+                        if(storyLikes.getUserId().equals(userId))
+                            isCanLikes = false;
+                    }
+
+
+                    return ResponseStory.builder()
+                            .id(s.getId())
+                            .title(s.getTitle())
+                            .content(s.getContent())
+                            .commentCount(s.getComments().size())
+                            .likesCount(s.getLikes().size())
+                            .type(s.getType().getValue())
+                            .createDate(s.getCreatedDate())
+                            .canLikes(isCanLikes)
+                            .isOwner(author.getId().equals(userId))
+                            .author(ResponseUser.builder()
+                                    .id(author.getId())
+                                    .name(author.getName())
+                                    .profileUrl(author.getProfileUrl())
+                                    .build())
+                            .purpose(ResponsePurpose.builder()
+                                    .id(purpose1.getId())
+                                    .name(purpose1.getName())
+                                    .build())
+                            .build();
+                }).collect(Collectors.toList())));
+    }
+
+    public Response quest(Long userId, String prefix, Pageable pageable){
 
         Page<Purpose> result = purposeRepository.findByDisclosureScopeAndNameStartsWith(Scope.PUBLIC ,prefix == null ? "" : prefix , pageable);
         Stream<Purpose> pageableResultStream = result.get();
 
-        return PageResult.of(pageable.getPageNumber() == result.getTotalPages() - 1,
+        return new Response("탐색 데이터 로드 성공" ,PageResult.of(pageable.getPageNumber() == result.getTotalPages() - 1,
                 pageableResultStream.map(p -> {
                     User author = p.getUser();
                     return ResponsePurpose.builder()
@@ -261,7 +306,7 @@ public class PurposeService {
                                 .build())
                                 .build();
                 }).collect(Collectors.toList())
-                );
+                ));
     }
 
 

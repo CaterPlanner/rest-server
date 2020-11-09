@@ -1,20 +1,17 @@
 package com.dawnfall.caterplanner.purpose.controller;
 
 import com.dawnfall.caterplanner.application.security.jwt.JwtPayload;
+import com.dawnfall.caterplanner.common.ErrorCode;
+import com.dawnfall.caterplanner.common.model.network.ErrorInfo;
+import com.dawnfall.caterplanner.common.model.network.Response;
 import com.dawnfall.caterplanner.purpose.service.PurposeService;
-import com.dawnfall.caterplanner.common.model.network.PageResult;
-import com.dawnfall.caterplanner.common.model.network.ResponseHeader;
 import com.dawnfall.caterplanner.purpose.model.request.PurposeAchieve;
 import com.dawnfall.caterplanner.purpose.model.request.PurposeResource;
-import com.dawnfall.caterplanner.purpose.model.response.ResponsePurpose;
 import com.dawnfall.caterplanner.purpose.service.CheerService;
 import com.dawnfall.caterplanner.purpose.service.PurposeCommentService;
-import com.dawnfall.caterplanner.story.service.StoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,139 +32,75 @@ public class PurposeController {
     @Autowired
     private CheerService cheerService;
 
-    @Autowired
-    private StoryService storyService;
-
-
     @PostMapping(consumes = {"multipart/form-data"})
-    public ResponseEntity<?> upload(HttpServletRequest request, @AuthenticationPrincipal JwtPayload payload, @ModelAttribute PurposeResource resource){
+    public Response upload(HttpServletRequest request, @AuthenticationPrincipal JwtPayload payload, @ModelAttribute PurposeResource resource){
         try {
-            return ResponseHeader.<ResponsePurpose>builder()
-                        .data(purposeService.create(payload.getId(), resource))
-                        .status(HttpStatus.CREATED)
-                        .message("목적 업로드 완료")
-                        .build();
+            return purposeService.create(payload.getId(), resource);
         } catch (IOException e) {
             e.printStackTrace();
-            return ResponseHeader.builder()
-                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .message("파일 스토로지 오류")
-                        .build();
+            return new Response("목적 생성 실패", new ErrorInfo(ErrorCode.FAILED_IMAGE_UPLOAD, "S3 오류"));
         }
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<?> detail(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
-        return ResponseHeader.<ResponsePurpose>builder()
-                    .data(purposeService.read(payload.getId(), id))
-                    .status(HttpStatus.OK)
-                    .message("세부 목적 로딩 완료")
-                    .build();
+    public Response detail(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+        return purposeService.read(payload.getId(), id);
     }
 
     @PatchMapping("{id}")
-    public ResponseEntity<?> modify(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute  PurposeResource resource){
+    public Response modify(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute  PurposeResource resource){
         try {
-            return ResponseHeader.builder()
-                    .data(purposeService.modify(payload.getId(), id, resource))
-                    .status(HttpStatus.OK)
-                    .message("목적 수정 완료")
-                    .build();
+            return purposeService.modify(payload.getId(), id, resource);
         } catch (IOException e) {
             e.printStackTrace();
-            return ResponseHeader.builder()
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .message("파일 스토로지 오류")
-                    .build();
+            return new Response("목적 생성 실패", new ErrorInfo(ErrorCode.FAILED_IMAGE_UPLOAD, "S3 오류"));
         }
     }
 
     @PutMapping("{id}")
-    public ResponseEntity<?> modifyAll(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute PurposeResource resource){
+    public Response modifyAll(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @ModelAttribute PurposeResource resource){
         try {
-            return ResponseHeader.builder()
-                        .data(purposeService.modifyAll(payload.getId(), id, resource))
-                        .status(HttpStatus.OK)
-                        .message("목적 수정 완료")
-                        .build();
+            return purposeService.modifyAll(payload.getId(), id, resource);
         } catch (IOException e) {
             e.printStackTrace();
-            return ResponseHeader.builder()
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .message("파일 스토로지 오류")
-                    .build();
+            return new Response("목적 생성 실패", new ErrorInfo(ErrorCode.FAILED_IMAGE_UPLOAD, "S3 오류"));
         }
     }
 
     @PatchMapping("{id}/update")
-    public ResponseEntity<?> update(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @RequestBody PurposeAchieve data){
-        purposeService.update(payload.getId() ,id, data);
-        return ResponseHeader.builder()
-                    .status(HttpStatus.OK)
-                    .message("목적 수행도 업데이트 완료")
-                    .build();
+    public Response update(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @Valid @RequestBody PurposeAchieve data){
+        return purposeService.update(payload.getId() ,id, data);
     }
 
     @DeleteMapping("{id}")
-    public ResponseEntity<?> delete(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
-        purposeService.delete(payload.getId(), id);
-        return ResponseHeader.builder()
-                    .status(HttpStatus.OK)
-                    .message("목적 삭제 완료")
-                    .build();
+    public Response delete(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+        return purposeService.delete(payload.getId(), id);
     }
 
     @PatchMapping("{id}/cheer/positive")
-    public ResponseEntity<?> positive(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
-        cheerService.create(payload.getId(), id);
-        return ResponseHeader.builder()
-                .status(HttpStatus.OK)
-                .message("응원되었습니다.")
-                .build();
+    public Response positive(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+        return cheerService.create(payload.getId(), id);
     }
 
     @PatchMapping("{id}/cheer/negative")
-    public ResponseEntity<?> negative(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
-        cheerService.delete(payload.getId(), id);
-        return ResponseHeader.builder().status(HttpStatus.OK)
-                .message("응원이 해제되었습니다.")
-                .build();
+    public Response negative(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id){
+        return cheerService.delete(payload.getId(), id);
     }
 
+    //PurposeService에서 처리한느게 나을것 으로 예상
     @GetMapping("{id}/stories")
-    public ResponseEntity<?> purposeStories(
-            @AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id,
-            @RequestParam("page") Integer page){
-
-        return ResponseHeader.<PageResult<?>>builder()
-                    .data(storyService.readPurposeStories(payload.getId(), id, PageRequest.of(page, 10)))
-                    .message("목적에 대한 스토리들이 로드되었습니다.")
-                    .status(HttpStatus.OK)
-                    .build();
+    public Response purposeStories(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long id, @RequestParam("page") Integer page){
+        return purposeService.readPurposeStories(payload.getId(), id, PageRequest.of(page, 10));
     }
 
     @GetMapping("{id}/comments")
-    public ResponseEntity<?> purposeComments(
-            @AuthenticationPrincipal JwtPayload payload,
-            @PathVariable("id") Long purposeId,
-            @RequestParam("page") Integer page){
-        return ResponseHeader.<PageResult<?>>builder()
-                    .data(purposeCommentService.readAll(payload.getId(), purposeId, PageRequest.of(page, 15, Sort.by("createdDate").descending())))
-                    .message("댓글이 로드되었습니다.")
-                    .status(HttpStatus.OK)
-                    .build();
-
+    public Response purposeComments(@AuthenticationPrincipal JwtPayload payload, @PathVariable("id") Long purposeId, @RequestParam("page") Integer page){
+        return purposeCommentService.readAll(payload.getId(), purposeId, PageRequest.of(page, 15, Sort.by("createdDate").descending()));
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@AuthenticationPrincipal JwtPayload payload,
-                                  @RequestParam(name = "prefix", required = false) String prefix,
-                                  @RequestParam("page") Integer page){
-        return ResponseHeader.builder()
-                    .data(purposeService.readAll(payload.getId(), prefix, PageRequest.of(page, 15, Sort.by("createdDate").descending())))
-                    .status(HttpStatus.OK)
-                    .message("목적들 로드 완료")
-                    .build();
+    public Response quest(@AuthenticationPrincipal JwtPayload payload, @RequestParam(name = "prefix", required = false) String prefix, @RequestParam("page") Integer page){
+        return purposeService.quest(payload.getId(), prefix, PageRequest.of(page, 15, Sort.by("createdDate").descending()));
     }
 
 }

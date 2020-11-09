@@ -2,7 +2,9 @@ package com.dawnfall.caterplanner.application.security.filter;
 
 import com.dawnfall.caterplanner.application.security.exception.IllegalJwtException;
 import com.dawnfall.caterplanner.application.security.token.PreJwtAuthenticationToken;
-import com.dawnfall.caterplanner.common.model.network.ResponseHeader;
+import com.dawnfall.caterplanner.common.ErrorCode;
+import com.dawnfall.caterplanner.common.model.network.ErrorInfo;
+import com.dawnfall.caterplanner.common.model.network.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -33,7 +35,7 @@ public class JwtAuthenticationFilter extends AbstractAuthenticationProcessingFil
         String header = request.getHeader("Authorization");
 
         if(StringUtils.isEmpty(header) || header.length() < AUTHORIZATION_HEADER_PREFIX.length())
-            throw new IllegalJwtException("토큰이 유효하지 않습니다.");
+            throw new IllegalJwtException(new ErrorInfo(ErrorCode.NOT_VALID_TOKEN, "유효하지 않은 토큰입니다."));
 
         String token = header.substring(AUTHORIZATION_HEADER_PREFIX.length());
 
@@ -54,13 +56,12 @@ public class JwtAuthenticationFilter extends AbstractAuthenticationProcessingFil
         response.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
 
+        ErrorInfo errorInfo = ((IllegalJwtException) failed).getErrorInfo();
+
         response.getWriter().write(
                 new ObjectMapper().writeValueAsString(
-                      new ResponseHeader.Data(HttpStatus.UNAUTHORIZED, "토큰 인증 실패", null)
+                        new Response("토큰 인증 실패", new ErrorInfo(errorInfo.getCode(), errorInfo.getMessage()))
                 )
         );
-
-
-
     }
 }

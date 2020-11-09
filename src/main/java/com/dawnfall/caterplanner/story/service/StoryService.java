@@ -1,12 +1,15 @@
 package com.dawnfall.caterplanner.story.service;
 
 import com.dawnfall.caterplanner.application.exception.HttpRequestException;
+import com.dawnfall.caterplanner.common.ErrorCode;
 import com.dawnfall.caterplanner.common.entity.Purpose;
 import com.dawnfall.caterplanner.common.entity.Story;
 import com.dawnfall.caterplanner.common.entity.StoryLikes;
 import com.dawnfall.caterplanner.common.entity.User;
 import com.dawnfall.caterplanner.common.entity.enumerate.Scope;
 import com.dawnfall.caterplanner.common.entity.enumerate.StoryType;
+import com.dawnfall.caterplanner.common.model.network.ErrorInfo;
+import com.dawnfall.caterplanner.common.model.network.Response;
 import com.dawnfall.caterplanner.common.repository.PurposeRepository;
 import com.dawnfall.caterplanner.common.repository.StoryCommentRepository;
 import com.dawnfall.caterplanner.common.repository.StoryRepository;
@@ -39,8 +42,9 @@ public class StoryService {
     @Autowired
     private StoryCommentRepository storyCommentRepository;
 
-    public ResponseStory create(Long userId, StoryResource resource) {
-        Purpose purpose = purposeRepository.findById(resource.getPurposeId()).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.BAD_REQUEST));
+    public Response create(Long userId, StoryResource resource) {
+        Purpose purpose = purposeRepository.findById(resource.getPurposeId()).orElseThrow(
+                () -> new HttpRequestException("스토리 생성 실패", new ErrorInfo(ErrorCode.NOT_EXISTED, "존재하지 않는 목적입니다.")));
 
 
         Story story = storyRepository.save(
@@ -53,23 +57,24 @@ public class StoryService {
                         .build()
         );
 
-        return ResponseStory.builder()
+        return new Response("스토리 생성 완료",  ResponseStory.builder()
                 .id(story.getId())
-                .build();
+                .build());
     }
 
-    public ResponseStory read(Long userId, Long id) {
-        Story story = storyRepository.findById(id).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
+    public Response read(Long userId, Long id) {
+        Story story = storyRepository.findById(id).orElseThrow(
+                () -> new HttpRequestException("스토리 로드 완료", new ErrorInfo(ErrorCode.NOT_EXISTED,"존재하지 않는 스토리입니다.")));
 
 
         Purpose p = story.getPurpose();
         User user = p.getUser();
 
         if(story.getDisclosureScope() == Scope.PRIVATE && !user.getId().equals(userId))
-            throw new HttpRequestException("비공개한 스토리입니다.", HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("스토리 로드 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED, "비공개한 스토리입니다."));
 
 
-            return ResponseStory.builder()
+            return new Response("스토리 로드 성공" , ResponseStory.builder()
                 .id(story.getId())
                 .title(story.getTitle())
                 .content(story.getContent())
@@ -105,66 +110,44 @@ public class StoryService {
                                 .photoUrl(p.getPhotoUrl())
                                 .stat(p.getStat().getValue())
                                 .build()
-                ).build();
+                ).build());
     }
 
     @Transactional
-    public void update(Long userId, Long storyId, StoryResource resource) {
-        Story story = storyRepository.findById(storyId).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
+    public Response update(Long userId, Long storyId, StoryResource resource) {
+        Story story = storyRepository.findById(storyId).orElseThrow(
+                () -> new HttpRequestException("스토리 수정 실패", new ErrorInfo(ErrorCode.NOT_EXISTED, "존재하지 않는 스토리입니다.")));
 
         if(!story.getPurpose().getUser().getId().equals(userId) )
-            throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("스토리 수정 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED, "권한이 없습니다."));
 
         story
                 .setTitle(resource.getTitle())
                 .setContent(resource.getContent())
                 .setType(StoryType.findStoryType(resource.getType()));
 
+        return new Response("스토리 수정 성공");
     }
 
-    public void delete(Long userId, Long purposeId) {
-        Story story = storyRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 스토리입니다.", HttpStatus.NOT_FOUND));
+    public Response delete(Long userId, Long purposeId) {
+        Story story = storyRepository.findById(purposeId).orElseThrow(
+                () -> new HttpRequestException("스토리 삭제 실패", new ErrorInfo(ErrorCode.NOT_EXISTED, "존재하지 않는 스토리입니다.")));
 
         if(!story.getPurpose().getUser().getId().equals(userId) )
-            throw new HttpRequestException("권한이 없습니다.", HttpStatus.UNAUTHORIZED);
+            throw new HttpRequestException("스토리 삭제 실패", new ErrorInfo(ErrorCode.UNAUTHORIZED, "권한이 없습니다."));
 
         storyRepository.delete(story);
-    }
-
-    public PageResult<?> readPurposeStories(Long userId, Long purposeId, Pageable pageable){
-        Purpose purpose = purposeRepository.findById(purposeId).orElseThrow(() -> new HttpRequestException("존재하지 않는 목적입니다.", HttpStatus.BAD_REQUEST));
-
-        boolean isOwner = purpose.getUser().getId().equals(userId);
-
-        Page<Story> pageResult = isOwner ?
-                storyRepository.findByPurposeId(purpose.getId(), pageable) :
-                storyRepository.findByPurposeIdAndDisclosureScope(purpose.getId(), purpose.getDisclosureScope(), pageable);
-
-        return PageResult.of(pageable.getPageNumber() == pageResult.getTotalPages() - 1 ,
-                    pageResult.get().map(s -> getResponseStoryByFront(userId, s)).collect(Collectors.toList()));
+        return new Response("스토리 삭제 성공");
     }
 
 
-    public PageResult<?> readAllForFront(Long userId, Integer type, Pageable pageable) {
+    public Response readAllForFront(Long userId, Integer type, Pageable pageable) {
         Page<Story> result = type == null ? storyRepository.findAllByDisclosureScope(Scope.PUBLIC, pageable) : storyRepository.findAllByType(type, pageable);
         Stream<Story> pageableResultStream = result.get();
 
-        return PageResult.of(pageable.getPageNumber() == result.getTotalPages() - 1 , pageableResultStream.map(s -> getResponseStoryByFront(userId, s)).collect(Collectors.toList()));
-    }
-
-    private boolean isCanLikes(List<StoryLikes> storyLikesList, Long targetId){
-        boolean canLikes = true;
-
-        for(StoryLikes storyLikes : storyLikesList){
-            if(storyLikes.getUserId().equals(targetId))
-                canLikes = false;
-        }
-        return canLikes;
-    }
-
-    private ResponseStory getResponseStoryByFront(Long userId, Story s){
-        Purpose purpose = s.getPurpose();
-        User author = purpose.getUser();
+        return new Response("피드 데이터 로드 성공", PageResult.of(pageable.getPageNumber() == result.getTotalPages() - 1 , pageableResultStream.map(s -> {
+            Purpose purpose = s.getPurpose();
+            User author = purpose.getUser();
 
             return ResponseStory.builder()
                     .id(s.getId())
@@ -186,6 +169,17 @@ public class StoryService {
                             .name(purpose.getName())
                             .build())
                     .build();
+        }).collect(Collectors.toList())));
+    }
+
+    private boolean isCanLikes(List<StoryLikes> storyLikesList, Long targetId){
+        boolean canLikes = true;
+
+        for(StoryLikes storyLikes : storyLikesList){
+            if(storyLikes.getUserId().equals(targetId))
+                canLikes = false;
+        }
+        return canLikes;
     }
 
 }
